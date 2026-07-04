@@ -12,13 +12,41 @@ function getRating(asset: any) {
   return asset?.exifInfo?.rating ?? 0;
 }
 
-function getStackId(asset: any) {
-  // ACCESSOR SPOT 2: change if stack info isn't at asset.stack.id
-  return asset?.stack?.id ?? null;
-}
-
 function getDescription(asset: any) {
   return asset?.exifInfo?.description || asset?.originalFileName || "";
+}
+
+// --- fetch all stacks once, build assetId -> stackId lookup ---
+// Album/asset responses don't reliably include stack membership, so we
+// hit /api/stacks separately and index it ourselves.
+async function getAssetIdToStackIdMap() {
+  const res = await fetch(`${IMMICH_BASE_URL}/api/stacks`, {
+    headers: {
+      "x-api-key": API_KEY,
+      Accept: "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch stacks (${res.status} ${res.statusText})`);
+  }
+
+  const stacks = await res.json();
+
+  if (!Array.isArray(stacks)) {
+    throw new Error("Unexpected response shape for /api/stacks.");
+  }
+
+  const map = new Map<string, any>();
+  for (const stack of stacks) {
+    // Each stack has an id and an array of member assets (including the primary).
+    for (const asset of stack.assets ?? []) {
+      if (asset?.id) {
+        map.set(asset.id, stack);
+      }
+    }
+  }
+  return map;
 }
 
 async function getDisplayAssets() {
@@ -44,25 +72,35 @@ async function getDisplayAssets() {
     album = await res.json();
   }
 
-  // --- collapse stacks to their highest-rated asset ---
   const rawAssets = album?.assets ?? [];
 
+  // One extra request to resolve stack membership for all assets at once.
+  const assetIdToStackId = await getAssetIdToStackIdMap();
+
+  // --- collapse stacks to their highest-rated asset ---
   const bestByGroup = new Map();
 
   for (const asset of rawAssets) {
-    const stackId = getStackId(asset);
+    const stack = assetIdToStackId.get(asset.id) ?? null;
     // Assets not in a stack are their own group, keyed by their own id.
-    const groupKey = stackId ?? asset.id;
 
-    const existing = bestByGroup.get(groupKey);
+    if (stack != null) {
+      if (stack.primaryAssetId === asset.id) {
+        bestByGroup.set(stack?.id, asset);
+      }
+      continue;
+    }
+
+    // asset is not in a stack. check it isn't already present and add.
+    const existing = bestByGroup.get(asset.id);
     if (!existing || getRating(asset) > getRating(existing)) {
-      bestByGroup.set(groupKey, asset);
+      bestByGroup.set(asset.id, asset);
     }
   }
 
   // --- filter out 1-star assets ---
-  return Array.from(bestByGroup.values()).filter(
-    (asset) => getRating(asset) !== 1,
+  return Array.from(bestByGroup.values()).filter((asset) =>
+    [null, 0, 3, 4, 5].includes(getRating(asset)),
   );
 }
 
@@ -125,6 +163,15 @@ if (errorMessage === null) {
       errorMessage = `Error fetching album: ${err.message}`;
     }
   }
+}
+
+// cache the result so we don't hammer the API on every request
+if (!import.meta.env.DEV) {
+  // 3600 seconds = 1 hour
+  Astro.response.headers.set(
+    "Cache-Control",
+    "public, max-age=3600, must-revalidate",
+  );
 }
 ---
 
