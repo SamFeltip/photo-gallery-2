@@ -1,14 +1,44 @@
 ---
-export const prerender = false; // needs the route param + live API data at request time
-import { Image } from "astro:assets";
+import { Image, Picture } from "astro:assets";
 import { thumbHashToDataURL } from "thumbhash";
 
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 
-const { id } = Astro.params;
-
 const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
 const API_KEY = import.meta.env.API_KEY;
+
+export async function getStaticPaths() {
+  const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
+  const API_KEY = import.meta.env.API_KEY;
+
+  let links = [];
+  const res = await fetch(`${IMMICH_BASE_URL}/api/shared-links`, {
+    headers: {
+      "x-api-key": API_KEY,
+      Accept: "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch album (${res.status} ${res.statusText})`);
+  } else {
+    links = await res.json();
+  }
+
+  if (!Array.isArray(links)) {
+    throw new Error("Unexpected response shape for shared links.");
+  }
+
+  const permanentLinks = links.filter(
+    (link) => link.expiresAt == null && link.album?.id != null,
+  );
+
+  return permanentLinks.map((link) => ({
+    params: { id: link.album.id },
+  }));
+}
+
+const { id } = Astro.params;
 
 // --- helper accessors (adjust here if your API shape differs) ---
 function getRating(asset: any) {
@@ -132,11 +162,6 @@ async function getShareKey() {
     throw new Error("Unexpected response shape for shared links.");
   }
 
-  console.debug(
-    `Found ${links.length} shared links, looking for album id ${id}`,
-  );
-  console.debug({ a: links[0]?.album, b: id });
-
   const link = links.find(
     (link) =>
       link.album.id === id &&
@@ -196,49 +221,52 @@ if (!import.meta.env.DEV) {
           <p>{errorMessage}</p>
         ) : (
           <section class="justified-gallery" id="photoswipe">
-            {displayAssets.map((asset) => {
-              console.debug({ asset });
-              const height = Number(asset?.exifInfo?.exifImageHeight) ?? 1;
-              const width = Number(asset?.exifInfo?.exifImageWidth) ?? 1;
+            {Object.values(displayAssets)
+              .toSorted((a, b) => a.fileCreatedAt - b.fileCreatedAt)
+              .map((asset) => {
+                console.debug({ asset });
+                const height = Number(asset?.exifInfo?.exifImageHeight) ?? 1;
+                const width = Number(asset?.exifInfo?.exifImageWidth) ?? 1;
 
-              const orientation =
-                Number(asset?.exifInfo?.orientation) == 8
+                const orientation = [8, 6].includes(
+                  Number(asset?.exifInfo?.orientation),
+                )
                   ? "portrait"
                   : "landscape";
 
-              const imgHeight = orientation === "portrait" ? width : height;
-              const imgWidth = orientation === "portrait" ? height : width;
+                const imgHeight = orientation === "portrait" ? width : height;
+                const imgWidth = orientation === "portrait" ? height : width;
 
-              // helper: base64 string -> Uint8Array (Node has atob globally in Astro's runtime)
-              function toDataUrl(base64Hash: string) {
-                const binary = atob(base64Hash);
-                const bytes = new Uint8Array(binary.length);
-                for (let i = 0; i < binary.length; i++) {
-                  bytes[i] = binary.charCodeAt(i);
+                // helper: base64 string -> Uint8Array (Node has atob globally in Astro's runtime)
+                function toDataUrl(base64Hash: string) {
+                  const binary = atob(base64Hash);
+                  const bytes = new Uint8Array(binary.length);
+                  for (let i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                  }
+                  return thumbHashToDataURL(bytes);
                 }
-                return thumbHashToDataURL(bytes);
-              }
 
-              const placeholder = toDataUrl(asset.thumbhash);
+                const placeholder = toDataUrl(asset.thumbhash);
 
-              return (
-                <a
-                  style={`--width: ${imgWidth}; --height: ${imgHeight}; --placeholder-url: url(${placeholder});`}
-                  href={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=fullsize`}
-                  target="_blank"
-                  data-fancybox="gallery"
-                  class="thumbhash-img"
-                >
-                  <Image
-                    id={asset.id}
-                    width={imgWidth}
-                    height={imgHeight}
-                    src={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=preview`}
-                    alt={getDescription(asset)}
-                  />
-                </a>
-              );
-            })}
+                return (
+                  <a
+                    style={`--width: ${imgWidth}; --height: ${imgHeight}; --placeholder-url: url(${placeholder});`}
+                    href={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=fullsize`}
+                    target="_blank"
+                    data-fancybox="gallery"
+                    class="thumbhash-img"
+                  >
+                    <Image
+                      id={asset.id}
+                      width={imgWidth}
+                      height={imgHeight}
+                      src={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=preview`}
+                      alt={getDescription(asset)}
+                    />
+                  </a>
+                );
+              })}
           </section>
         )
       }
