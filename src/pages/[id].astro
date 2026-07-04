@@ -1,5 +1,9 @@
 ---
 export const prerender = false; // needs the route param + live API data at request time
+import { Image } from "astro:assets";
+
+import { Fancybox } from "@fancyapps/ui/dist/fancybox/";
+import "@fancyapps/ui/dist/fancybox/fancybox.css";
 
 const { id } = Astro.params;
 
@@ -133,7 +137,11 @@ async function getShareKey() {
   );
   console.debug({ a: links[0]?.album, b: id });
 
-  const link = links.find((link) => link.album.id === id);
+  const link = links.find(
+    (link) =>
+      link.album.id === id &&
+      (link.expiresAt == null || new Date(link.expiresAt) > new Date()),
+  );
 
   if (!link) {
     throw new Error(`No shared link found for album id ${id}`);
@@ -180,8 +188,75 @@ if (!import.meta.env.DEV) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Album {id}</title>
+  </head>
+  <body>
+    <main>
+      {
+        errorMessage ? (
+          <p>{errorMessage}</p>
+        ) : (
+          <section class="justified-gallery" id="photoswipe">
+            {displayAssets.map((asset) => {
+              console.debug({ asset });
+              const height = Number(asset?.exifInfo?.exifImageHeight) ?? 1;
+              const width = Number(asset?.exifInfo?.exifImageWidth) ?? 1;
+
+              const orientation =
+                Number(asset?.exifInfo?.orientation) == 8
+                  ? "portrait"
+                  : "landscape";
+
+              const imgHeight = orientation === "portrait" ? width : height;
+              const imgWidth = orientation === "portrait" ? height : width;
+
+              return (
+                <a
+                  style={`--width: ${imgWidth}; --height: ${imgHeight};`}
+                  href={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=fullsize`}
+                  target="_blank"
+                  data-fancybox="gallery"
+                >
+                  <Image
+                    width={imgWidth}
+                    height={imgHeight}
+                    src={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=preview`}
+                    alt={getDescription(asset)}
+                  />
+                </a>
+              );
+            })}
+          </section>
+        )
+      }
+    </main>
+
+    <script>
+      import { Fancybox } from "@fancyapps/ui/dist/fancybox/";
+
+      Fancybox.bind("[data-fancybox]", {
+        theme: "auto",
+        mainStyle: {
+          "--f-button-width": "44px",
+          "--f-button-height": "44px",
+          "--f-button-border-radius": "50%",
+          "--f-toolbar-padding": "16px",
+        },
+        Carousel: {
+          Arrows: false,
+          Toolbar: {
+            display: {
+              left: [],
+              middle: [],
+              right: ["close"],
+            },
+          },
+          transition: "slide",
+        },
+      });
+    </script>
+
     <style is:global>
-      /* Minimal CSS reset — no visual styling beyond this */
+      /* Minimal CSS reset */
       *,
       *::before,
       *::after {
@@ -201,26 +276,56 @@ if (!import.meta.env.DEV) {
         list-style: none;
       }
     </style>
-  </head>
-  <body>
-    {
-      errorMessage ? (
-        <p>{errorMessage}</p>
-      ) : (
-        <ul>
-          {displayAssets.map((asset) => (
-            <li>
-              <img
-                src={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}`}
-                alt={getDescription(asset)}
-                height="200"
-              />
-              <p>Rating: {getRating(asset) || "Unrated"}</p>
-              <p>{asset.originalFileName}</p>
-            </li>
-          ))}
-        </ul>
-      )
-    }
+
+    <style>
+      main {
+        --padding: max(2.5vw, 12px);
+        padding: var(--padding);
+      }
+
+      .justified-gallery {
+        --space: clamp(12px, 1.25vw, 6px);
+        --min-height: clamp(200px, 20vw, 400px);
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space);
+
+        a {
+          flex-grow: calc(var(--width) * (100000 / var(--height)));
+          flex-basis: calc(var(--min-height) * (var(--width) / var(--height)));
+          aspect-ratio: var(--width) / var(--height);
+          overflow: hidden;
+          opacity: 1;
+          transition: all 0.05s ease-in-out;
+        }
+
+        a img {
+          display: block;
+          object-fit: cover;
+          height: 100%;
+          width: 100%;
+        }
+
+        a:focus-visible {
+          outline: 3px solid var(--outline);
+          outline-offset: 2px;
+          transform: scale(1.05);
+          z-index: 1;
+          border-radius: 2px;
+          box-shadow: 0 2px 4px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        a.hidden {
+          transition: opacity 0.4s ease-in-out;
+          opacity: 0;
+        }
+
+        &::after {
+          content: " ";
+          flex-grow: 1000000000;
+        }
+      }
+    </style>
   </body>
 </html>
