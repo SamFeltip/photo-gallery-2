@@ -1,5 +1,5 @@
 ---
-import { Image } from "astro:assets";
+import { Font, Image } from "astro:assets";
 import { thumbHashToDataURL } from "thumbhash";
 
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
@@ -64,7 +64,7 @@ async function getAssetIdToStackIdMap() {
   return map;
 }
 
-async function getDisplayAssets() {
+async function getAlbum() {
   let album = null;
   if (!IMMICH_BASE_URL || !API_KEY) {
     throw new Error("Missing IMMICH_BASE_URL or API_KEY in environment.");
@@ -87,6 +87,10 @@ async function getDisplayAssets() {
     album = await res.json();
   }
 
+  return album;
+}
+
+async function getDisplayAssets(album: any) {
   const rawAssets = album?.assets ?? [];
 
   // One extra request to resolve stack membership for all assets at once.
@@ -167,11 +171,13 @@ try {
   }
 }
 
+let album = null;
 let displayAssets = [];
 
 if (errorMessage === null) {
   try {
-    displayAssets = await getDisplayAssets();
+    album = await getAlbum();
+    displayAssets = await getDisplayAssets(album);
   } catch (err) {
     if (err instanceof Error) {
       errorMessage = `Error fetching album: ${err.message}`;
@@ -194,6 +200,7 @@ if (!import.meta.env.DEV) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Album {id}</title>
+    <Font cssVariable="--font-unbounded" />
   </head>
   <body>
     <main>
@@ -201,6 +208,7 @@ if (!import.meta.env.DEV) {
         errorMessage ? (
           <p>{errorMessage}</p>
         ) : (
+          <h1><a href="/">{album.albumName}</a></h1>
           <section class="justified-gallery" id="photoswipe">
             {Object.values(displayAssets)
               .toSorted((a, b) => a.fileCreatedAt - b.fileCreatedAt)
@@ -298,6 +306,15 @@ if (!import.meta.env.DEV) {
       ul {
         list-style: none;
       }
+      h1 {
+        font-family: var(--font-unbounded);
+        margin-bottom: 1rem;
+         a {
+            text-decoration: none; /* no underline */
+            color: inherit; /* inherit color from parent */
+         }
+      }
+
     </style>
 
     <style>
