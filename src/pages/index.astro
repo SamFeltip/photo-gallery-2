@@ -1,45 +1,34 @@
 ---
 import { Image } from "astro:assets";
-import { getShareLinks } from "../lib/immichHelpers";
 import { Font } from "astro:assets";
+import { getAllAlbums, init, getAllSharedLinks } from "@immich/sdk";
 
 const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
 const API_KEY = import.meta.env.API_KEY;
 
-const res = await fetch(`${IMMICH_BASE_URL}/api/albums`, {
-  headers: {
-    "x-api-key": API_KEY,
-    Accept: "application/json",
-  },
+init({
+  baseUrl: `${IMMICH_BASE_URL}/api`,
+  apiKey: API_KEY,
 });
 
-let albumsResponse = null;
-if (!res.ok) {
-  throw new Error(`Failed to fetch album (${res.status} ${res.statusText})`);
-} else {
-  albumsResponse = await res.json();
-}
+const albumsResponse = await getAllAlbums({ isShared: true });
 
-if (!Array.isArray(albumsResponse)) {
-  throw new Error("Unexpected response shape for shared links.");
-}
-
-const shareLinks = await getShareLinks(IMMICH_BASE_URL, API_KEY);
+const shareLinks = await getAllSharedLinks({});
 
 const sharedAlbums = shareLinks.filter(
-  (link) => link.expiresAt == null && link.album?.id !== null,
+  (link) =>
+    link.album?.id !== undefined &&
+    (link.expiresAt == null || new Date(link.expiresAt) > new Date()),
 );
 
-const sharedAlbumIds = sharedAlbums.map((link) => link.album.id);
-
-console.debug({ sharedAlbums });
-
-console.debug({ albumsResponse });
+const sharedAlbumIds = sharedAlbums
+  .map((link) => link.album?.id)
+  .filter((id): id is string => id !== undefined);
 
 let albums = albumsResponse
   .filter((album) => sharedAlbumIds.includes(album.id))
   .map((album) => {
-    const sharedLink = sharedAlbums.find((link) => link.album.id === album.id);
+    const sharedLink = sharedAlbums.find((link) => link.album?.id === album.id);
     return {
       ...album,
       sharedKey: sharedLink?.key ?? null,
@@ -120,7 +109,8 @@ let albums = albumsResponse
         Object.values(albums)
           .toSorted(
             (a, b) =>
-              new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
+              new Date(b.startDate ?? 0).getTime() -
+              new Date(a.startDate ?? 0).getTime(),
           )
           .map((album) => (
             <li class="album" id={album.id}>

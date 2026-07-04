@@ -1,33 +1,39 @@
 ---
 import { Font, Image } from "astro:assets";
 import { thumbHashToDataURL } from "thumbhash";
+import { init, searchStacks,getAlbumInfo, type AlbumResponseDto, getAllAlbums, type AssetResponseDto } from "@immich/sdk";
 
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
-import { getShareLinks } from "../lib/immichHelpers";
-
-const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
-const API_KEY = import.meta.env.API_KEY;
 
 export async function getStaticPaths() {
   const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
   const API_KEY = import.meta.env.API_KEY;
 
-  const permanentLinks = await getShareLinks(IMMICH_BASE_URL, API_KEY);
+  init({ baseUrl: `${IMMICH_BASE_URL}/api`, apiKey: API_KEY });
 
-  return permanentLinks.map((link) => ({
-    params: { id: link.album.id },
+  const albums = await getAllAlbums({
+    isShared: true,
+  });
+
+  return albums.map((album) => ({
+    params: { id: album.id },
   }));
 }
 
 const { id } = Astro.params;
 
+const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
+const API_KEY = import.meta.env.API_KEY;
+init({ baseUrl: `${IMMICH_BASE_URL}/api`, apiKey: API_KEY });
+
+
 // --- helper accessors (adjust here if your API shape differs) ---
-function getRating(asset: any) {
+function getRating(asset: AssetResponseDto) {
   // ACCESSOR SPOT 1: change if rating isn't at asset.exifInfo.rating
   return asset?.exifInfo?.rating ?? 0;
 }
 
-function getDescription(asset: any) {
+function getDescription(asset: AssetResponseDto) {
   return asset?.exifInfo?.description || asset?.originalFileName || "";
 }
 
@@ -35,28 +41,14 @@ function getDescription(asset: any) {
 // Album/asset responses don't reliably include stack membership, so we
 // hit /api/stacks separately and index it ourselves.
 async function getAssetIdToStackIdMap() {
-  const res = await fetch(`${IMMICH_BASE_URL}/api/stacks`, {
-    headers: {
-      "x-api-key": API_KEY,
-      Accept: "application/json",
-    },
-  });
 
-  if (!res.ok) {
-    throw new Error(`Failed to fetch stacks (${res.status} ${res.statusText})`);
-  }
-
-  const stacks = await res.json();
-
-  if (!Array.isArray(stacks)) {
-    throw new Error("Unexpected response shape for /api/stacks.");
-  }
+  const stacks = await searchStacks({});
 
   const map = new Map<string, any>();
   for (const stack of stacks) {
     // Each stack has an id and an array of member assets (including the primary).
-    for (const asset of stack.assets ?? []) {
-      if (asset?.id) {
+    for (const asset of stack.assets) {
+      if (asset.id) {
         map.set(asset.id, stack);
       }
     }
@@ -65,39 +57,17 @@ async function getAssetIdToStackIdMap() {
 }
 
 async function getAlbum() {
-  let album = null;
-  if (!IMMICH_BASE_URL || !API_KEY) {
-    throw new Error("Missing IMMICH_BASE_URL or API_KEY in environment.");
-  }
-
-  if (!id) {
-    throw new Error("No album id provided in route.");
-  }
-
-  const res = await fetch(`${IMMICH_BASE_URL}/api/albums/${id}`, {
-    headers: {
-      "x-api-key": API_KEY,
-      Accept: "application/json",
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch album (${res.status} ${res.statusText})`);
-  } else {
-    album = await res.json();
-  }
-
-  return album;
 }
 
-async function getDisplayAssets(album: any) {
-  const rawAssets = album?.assets ?? [];
+async function getDisplayAssets(album: {assets: AssetResponseDto[] | undefined}) {
+  
+  const rawAssets = album?.assets ?? []
 
   // One extra request to resolve stack membership for all assets at once.
   const assetIdToStackId = await getAssetIdToStackIdMap();
 
   // --- collapse stacks to their highest-rated asset ---
-  const bestByGroup = new Map();
+  const bestByGroup = new Map<string, AssetResponseDto>();
 
   for (const asset of rawAssets) {
     const stack = assetIdToStackId.get(asset.id) ?? null;
@@ -171,27 +141,19 @@ try {
   }
 }
 
-let album = null;
-let displayAssets = [];
+let album: AlbumResponseDto | undefined;
+let displayAssets: AssetResponseDto[] = [];
 
 if (errorMessage === null) {
   try {
-    album = await getAlbum();
+    album = await getAlbumInfo({id: id});
+    //@ts-ignore
     displayAssets = await getDisplayAssets(album);
   } catch (err) {
     if (err instanceof Error) {
       errorMessage = `Error fetching album: ${err.message}`;
     }
   }
-}
-
-// cache the result so we don't hammer the API on every request
-if (!import.meta.env.DEV) {
-  // 3600 seconds = 1 hour
-  Astro.response.headers.set(
-    "Cache-Control",
-    "public, max-age=3600, must-revalidate",
-  );
 }
 ---
 
@@ -200,28 +162,27 @@ if (!import.meta.env.DEV) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>Photo Gallery • {album.albumName}</title>
-    <meta name="description" content={album.description} />
-    <meta property="og:title" content={album.albumName} />
+    <title>Photo Gallery • {album?.albumName}</title>
+    <meta name="description" content={album?.description} />
+    <meta property="og:title" content={album?.albumName} />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content={`${IMMICH_BASE_URL}/api/assets/${album.albumThumbnailAssetId}/thumbnail?key=${shareKey}&size=preview`}/>
-    <meta property="og:image:alt" content={album.description} />
+    <meta property="og:image" content={`${IMMICH_BASE_URL}/api/assets/${album?.albumThumbnailAssetId}/thumbnail?key=${shareKey}&size=preview`}/>
+    <meta property="og:image:alt" content={album?.description} />
 
-    <meta property="og:description" content={album.description} />
+    <meta property="og:description" content={album?.description} />
     <Font cssVariable="--font-unbounded" />
   </head>
   <body>
     <main>
       {
-        errorMessage ? (
+        errorMessage || album === undefined ? (
           <p>{errorMessage}</p>
         ) : (
           <h1><a href="/">{album.albumName}</a></h1>
           <section class="justified-gallery" id="photoswipe">
             {Object.values(displayAssets)
-              .toSorted((a, b) => a.fileCreatedAt - b.fileCreatedAt)
+              .toSorted((a, b) => new Date(a.fileCreatedAt).getTime() - new Date(b.fileCreatedAt).getTime())
               .map((asset) => {
-                console.debug({ asset });
                 const height = Number(asset?.exifInfo?.exifImageHeight) ?? 1;
                 const width = Number(asset?.exifInfo?.exifImageWidth) ?? 1;
 
@@ -244,7 +205,7 @@ if (!import.meta.env.DEV) {
                   return thumbHashToDataURL(bytes);
                 }
 
-                const placeholder = toDataUrl(asset.thumbhash);
+                const placeholder = asset.thumbhash ? toDataUrl(asset.thumbhash) : null;
 
                 return (
                   <a
