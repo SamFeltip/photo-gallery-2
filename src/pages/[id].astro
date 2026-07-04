@@ -56,9 +56,6 @@ async function getAssetIdToStackIdMap() {
   return map;
 }
 
-async function getAlbum() {
-}
-
 async function getDisplayAssets(album: {assets: AssetResponseDto[] | undefined}) {
   
   const rawAssets = album?.assets ?? []
