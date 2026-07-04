@@ -198,8 +198,16 @@ if (!import.meta.env.DEV) {
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Album {id}</title>
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Photo Gallery • {album.albumName}</title>
+    <meta name="description" content={album.description} />
+    <meta property="og:title" content={album.albumName} />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content={`${IMMICH_BASE_URL}/api/assets/${album.albumThumbnailAssetId}/thumbnail?key=${shareKey}&size=preview`}/>
+    <meta property="og:image:alt" content={album.description} />
+
+    <meta property="og:description" content={album.description} />
     <Font cssVariable="--font-unbounded" />
   </head>
   <body>

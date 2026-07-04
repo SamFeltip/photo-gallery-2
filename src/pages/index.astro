@@ -51,10 +51,8 @@ let albums = albumsResponse
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>Astro</title>
+    <title>Photo Gallery</title>
     <Font cssVariable="--font-unbounded" />
 
     <style>
@@ -119,23 +117,58 @@ let albums = albumsResponse
   <body>
     <ul id="albums">
       {
-        albums.map((album) => (
-          <li class="album" id={album.id}>
-            <a href={`/${album.id}`}>
-              <span>
-                <Image
-                  style={{ objectFit: "cover" }}
-                  height={300}
-                  width={400}
-                  src={`${IMMICH_BASE_URL}/api/assets/${album.albumThumbnailAssetId}/thumbnail?key=${album.sharedKey}&size=preview`}
-                  alt={album.albumName}
-                />
-              </span>
-              <h2>{album.albumName}</h2>
-            </a>
-          </li>
-        ))
+        Object.values(albums)
+          .toSorted(
+            (a, b) =>
+              new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
+          )
+          .map((album) => (
+            <li class="album" id={album.id}>
+              <a href={`/${album.id}`}>
+                <span>
+                  <Image
+                    style={{ objectFit: "cover" }}
+                    height={300}
+                    width={400}
+                    src={`${IMMICH_BASE_URL}/api/assets/${album.albumThumbnailAssetId}/thumbnail?key=${album.sharedKey}&size=preview`}
+                    alt={album.albumName}
+                  />
+                </span>
+                <h2>{album.albumName}</h2>
+              </a>
+            </li>
+          ))
       }
     </ul>
-  </body>
+  </body><style>
+    img {
+      opacity: 0;
+      transform: scale(1.03);
+      transition:
+        opacity 0.2s ease-in-out,
+        transform 0.3s ease-in-out;
+    }
+
+    img.loaded {
+      opacity: 1;
+      transform: scale(1);
+    }
+  </style>
+  <script>
+    function markLoaded(img: HTMLImageElement) {
+      img.classList.add("loaded");
+    }
+
+    document.querySelectorAll("img").forEach((img: Element) => {
+      const htmlImg = img as HTMLImageElement;
+      if (htmlImg.complete && htmlImg.naturalWidth > 0) {
+        // already loaded from cache — no fade needed, just show it
+        markLoaded(htmlImg);
+      } else {
+        htmlImg.addEventListener("load", () => markLoaded(htmlImg), {
+          once: true,
+        });
+      }
+    });
+  </script>
 </html>
