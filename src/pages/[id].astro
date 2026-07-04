@@ -1,8 +1,8 @@
 ---
 export const prerender = false; // needs the route param + live API data at request time
 import { Image } from "astro:assets";
+import { thumbHashToDataURL } from "thumbhash";
 
-import { Fancybox } from "@fancyapps/ui/dist/fancybox/";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 
 const { id } = Astro.params;
@@ -209,14 +209,28 @@ if (!import.meta.env.DEV) {
               const imgHeight = orientation === "portrait" ? width : height;
               const imgWidth = orientation === "portrait" ? height : width;
 
+              // helper: base64 string -> Uint8Array (Node has atob globally in Astro's runtime)
+              function toDataUrl(base64Hash: string) {
+                const binary = atob(base64Hash);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                  bytes[i] = binary.charCodeAt(i);
+                }
+                return thumbHashToDataURL(bytes);
+              }
+
+              const placeholder = toDataUrl(asset.thumbhash);
+
               return (
                 <a
-                  style={`--width: ${imgWidth}; --height: ${imgHeight};`}
+                  style={`--width: ${imgWidth}; --height: ${imgHeight}; --placeholder-url: url(${placeholder});`}
                   href={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=fullsize`}
                   target="_blank"
                   data-fancybox="gallery"
+                  class="thumbhash-img"
                 >
                   <Image
+                    id={asset.id}
                     width={imgWidth}
                     height={imgHeight}
                     src={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=preview`}
@@ -327,5 +341,46 @@ if (!import.meta.env.DEV) {
         }
       }
     </style>
+    <style>
+      .thumbhash-img {
+        background-image: var(--placeholder-url);
+        background-size: cover;
+        background-repeat: no-repeat;
+
+        img {
+          opacity: 0;
+          transform: scale(1.03);
+          transition:
+            opacity 0.2s ease-in-out,
+            transform 0.3s ease-in-out;
+        }
+      }
+
+      .thumbhash-img {
+        img.loaded {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+    </style>
+    <script>
+      function markLoaded(img: HTMLImageElement) {
+        img.classList.add("loaded");
+      }
+
+      document
+        .querySelectorAll(".thumbhash-img > img")
+        .forEach((img: Element) => {
+          const htmlImg = img as HTMLImageElement;
+          if (htmlImg.complete && htmlImg.naturalWidth > 0) {
+            // already loaded from cache — no fade needed, just show it
+            markLoaded(htmlImg);
+          } else {
+            htmlImg.addEventListener("load", () => markLoaded(htmlImg), {
+              once: true,
+            });
+          }
+        });
+    </script>
   </body>
 </html>
