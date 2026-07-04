@@ -1,17 +1,141 @@
 ---
+import { Image } from "astro:assets";
+import { getShareLinks } from "../lib/immichHelpers";
+import { Font } from "astro:assets";
 
+const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
+const API_KEY = import.meta.env.API_KEY;
+
+const res = await fetch(`${IMMICH_BASE_URL}/api/albums`, {
+  headers: {
+    "x-api-key": API_KEY,
+    Accept: "application/json",
+  },
+});
+
+let albumsResponse = null;
+if (!res.ok) {
+  throw new Error(`Failed to fetch album (${res.status} ${res.statusText})`);
+} else {
+  albumsResponse = await res.json();
+}
+
+if (!Array.isArray(albumsResponse)) {
+  throw new Error("Unexpected response shape for shared links.");
+}
+
+const shareLinks = await getShareLinks(IMMICH_BASE_URL, API_KEY);
+
+const sharedAlbums = shareLinks.filter(
+  (link) => link.expiresAt == null && link.album?.id !== null,
+);
+
+const sharedAlbumIds = sharedAlbums.map((link) => link.album.id);
+
+console.debug({ sharedAlbums });
+
+console.debug({ albumsResponse });
+
+let albums = albumsResponse
+  .filter((album) => sharedAlbumIds.includes(album.id))
+  .map((album) => {
+    const sharedLink = sharedAlbums.find((link) => link.album.id === album.id);
+    return {
+      ...album,
+      sharedKey: sharedLink?.key ?? null,
+    };
+  });
 ---
 
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Astro</title>
+    <Font cssVariable="--font-unbounded" />
+
+    <style>
+      ul#albums {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: center;
+        list-style: none;
+        padding: 0;
+        margin: max(2.5vw, 12px);
+        gap: max(2.5vw, 12px);
+      }
+
+      li.album {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: center;
+
+        & a {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-decoration: none;
+          color: inherit;
+          text-transform: capitalize;
+        }
+
+        & span {
+          aspect-ratio: 4 / 3;
+          height: 100%;
+          width: 100%;
+        }
+
+        & img {
+          aspect-ratio: 4 / 3;
+          height: 100%;
+          width: 100%;
+          object-fit: cover;
+        }
+
+        & h2 {
+          font-family: var(--font-unbounded);
+
+          margin: 0.5rem 0 0;
+          font-size: 1.5rem;
+        }
+      }
+
+      @media screen and (min-width: 400px) {
+        ul#albums {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media screen and (min-width: 650px) {
+        ul#albums {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <ul id="albums">
+      {
+        albums.map((album) => (
+          <li class="album" id={album.id}>
+            <a href={`/${album.id}`}>
+              <span>
+                <Image
+                  style={{ objectFit: "cover" }}
+                  height={300}
+                  width={400}
+                  src={`${IMMICH_BASE_URL}/api/assets/${album.albumThumbnailAssetId}/thumbnail?key=${album.sharedKey}&size=preview`}
+                  alt={album.albumName}
+                />
+              </span>
+              <h2>{album.albumName}</h2>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </body>
 </html>

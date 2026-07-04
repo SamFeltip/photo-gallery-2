@@ -1,8 +1,9 @@
 ---
-import { Image, Picture } from "astro:assets";
+import { Image } from "astro:assets";
 import { thumbHashToDataURL } from "thumbhash";
 
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
+import { getShareLinks } from "../lib/immichHelpers";
 
 const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
 const API_KEY = import.meta.env.API_KEY;
@@ -11,27 +12,7 @@ export async function getStaticPaths() {
   const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
   const API_KEY = import.meta.env.API_KEY;
 
-  let links = [];
-  const res = await fetch(`${IMMICH_BASE_URL}/api/shared-links`, {
-    headers: {
-      "x-api-key": API_KEY,
-      Accept: "application/json",
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch album (${res.status} ${res.statusText})`);
-  } else {
-    links = await res.json();
-  }
-
-  if (!Array.isArray(links)) {
-    throw new Error("Unexpected response shape for shared links.");
-  }
-
-  const permanentLinks = links.filter(
-    (link) => link.expiresAt == null && link.album?.id != null,
-  );
+  const permanentLinks = await getShareLinks(IMMICH_BASE_URL, API_KEY);
 
   return permanentLinks.map((link) => ({
     params: { id: link.album.id },
