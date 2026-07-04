@@ -1,0 +1,179 @@
+---
+export const prerender = false; // needs the route param + live API data at request time
+
+const { id } = Astro.params;
+
+const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
+const API_KEY = import.meta.env.API_KEY;
+
+// --- helper accessors (adjust here if your API shape differs) ---
+function getRating(asset: any) {
+  // ACCESSOR SPOT 1: change if rating isn't at asset.exifInfo.rating
+  return asset?.exifInfo?.rating ?? 0;
+}
+
+function getStackId(asset: any) {
+  // ACCESSOR SPOT 2: change if stack info isn't at asset.stack.id
+  return asset?.stack?.id ?? null;
+}
+
+function getDescription(asset: any) {
+  return asset?.exifInfo?.description || asset?.originalFileName || "";
+}
+
+async function getDisplayAssets() {
+  let album = null;
+  if (!IMMICH_BASE_URL || !API_KEY) {
+    throw new Error("Missing IMMICH_BASE_URL or API_KEY in environment.");
+  }
+
+  if (!id) {
+    throw new Error("No album id provided in route.");
+  }
+
+  const res = await fetch(`${IMMICH_BASE_URL}/api/albums/${id}`, {
+    headers: {
+      "x-api-key": API_KEY,
+      Accept: "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch album (${res.status} ${res.statusText})`);
+  } else {
+    album = await res.json();
+  }
+
+  // --- collapse stacks to their highest-rated asset ---
+  const rawAssets = album?.assets ?? [];
+
+  const bestByGroup = new Map();
+
+  for (const asset of rawAssets) {
+    const stackId = getStackId(asset);
+    // Assets not in a stack are their own group, keyed by their own id.
+    const groupKey = stackId ?? asset.id;
+
+    const existing = bestByGroup.get(groupKey);
+    if (!existing || getRating(asset) > getRating(existing)) {
+      bestByGroup.set(groupKey, asset);
+    }
+  }
+
+  // --- filter out 1-star assets ---
+  return Array.from(bestByGroup.values()).filter(
+    (asset) => getRating(asset) !== 1,
+  );
+}
+
+async function getShareKey() {
+  let links = null;
+
+  if (!id) {
+    throw new Error("No album id provided in route.");
+  }
+
+  const res = await fetch(`${IMMICH_BASE_URL}/api/shared-links`, {
+    headers: {
+      "x-api-key": API_KEY,
+      Accept: "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch album (${res.status} ${res.statusText})`);
+  } else {
+    links = await res.json();
+  }
+
+  if (!Array.isArray(links)) {
+    throw new Error("Unexpected response shape for shared links.");
+  }
+
+  console.debug(
+    `Found ${links.length} shared links, looking for album id ${id}`,
+  );
+  console.debug({ a: links[0]?.album, b: id });
+
+  const link = links.find((link) => link.album.id === id);
+
+  if (!link) {
+    throw new Error(`No shared link found for album id ${id}`);
+  }
+
+  return link.key;
+}
+
+let errorMessage = null;
+
+let shareKey = null;
+try {
+  shareKey = await getShareKey();
+} catch (err) {
+  if (err instanceof Error) {
+    errorMessage = `Error fetching shared link: ${err.message}`;
+  }
+}
+
+let displayAssets = [];
+
+if (errorMessage === null) {
+  try {
+    displayAssets = await getDisplayAssets();
+  } catch (err) {
+    if (err instanceof Error) {
+      errorMessage = `Error fetching album: ${err.message}`;
+    }
+  }
+}
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Album {id}</title>
+    <style is:global>
+      /* Minimal CSS reset — no visual styling beyond this */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      img {
+        display: block;
+        max-width: 100%;
+      }
+      ul {
+        list-style: none;
+      }
+    </style>
+  </head>
+  <body>
+    {
+      errorMessage ? (
+        <p>{errorMessage}</p>
+      ) : (
+        <ul>
+          {displayAssets.map((asset) => (
+            <li>
+              <img
+                src={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}`}
+                alt={getDescription(asset)}
+                height="200"
+              />
+              <p>Rating: {getRating(asset) || "Unrated"}</p>
+              <p>{asset.originalFileName}</p>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </body>
+</html>
