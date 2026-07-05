@@ -1,9 +1,11 @@
 ---
 import { Font, Image } from "astro:assets";
-import { thumbHashToDataURL } from "thumbhash";
-import { init, searchStacks,getAlbumInfo, type AlbumResponseDto, getAllAlbums, type AssetResponseDto } from "@immich/sdk";
-
+import "../styles/styles.css";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
+
+import { thumbHashToDataURL } from "thumbhash";
+import { init, searchStacks,getAlbumInfo, type AlbumResponseDto, getAllAlbums, type AssetResponseDto, getAssetMetadata, searchAssets } from "@immich/sdk";
+import People from "../components/People.astro";
 
 export async function getStaticPaths() {
   const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
@@ -143,6 +145,10 @@ let displayAssets: AssetResponseDto[] = [];
 
 if (errorMessage === null) {
   try {
+    // displayAssets = (await searchAssets({
+    //   metadataSearchDto: { albumIds: [id], withStacked: true, withExif: true }
+    // })).assets.items;
+    
     album = await getAlbumInfo({id: id});
     //@ts-ignore
     displayAssets = await getDisplayAssets(album);
@@ -168,120 +174,6 @@ if (errorMessage === null) {
 
     <meta property="og:description" content={album?.description} />
     <Font cssVariable="--font-unbounded" />
-  </head>
-  <body>
-    <main>
-      {
-        errorMessage || album === undefined ? (
-          <p>{errorMessage}</p>
-        ) : (
-          <h1><a href="/">{album.albumName}</a></h1>
-          <section class="justified-gallery" id="photoswipe">
-            {Object.values(displayAssets)
-              .toSorted((a, b) => new Date(a.fileCreatedAt).getTime() - new Date(b.fileCreatedAt).getTime())
-              .map((asset) => {
-                const height = Number(asset?.exifInfo?.exifImageHeight) ?? 1;
-                const width = Number(asset?.exifInfo?.exifImageWidth) ?? 1;
-
-                const orientation = [8, 6].includes(
-                  Number(asset?.exifInfo?.orientation),
-                )
-                  ? "portrait"
-                  : "landscape";
-
-                const imgHeight = orientation === "portrait" ? width : height;
-                const imgWidth = orientation === "portrait" ? height : width;
-
-                // helper: base64 string -> Uint8Array (Node has atob globally in Astro's runtime)
-                function toDataUrl(base64Hash: string) {
-                  const binary = atob(base64Hash);
-                  const bytes = new Uint8Array(binary.length);
-                  for (let i = 0; i < binary.length; i++) {
-                    bytes[i] = binary.charCodeAt(i);
-                  }
-                  return thumbHashToDataURL(bytes);
-                }
-
-                const placeholder = asset.thumbhash ? toDataUrl(asset.thumbhash) : null;
-
-                return (
-                  <a
-                    style={`--width: ${imgWidth}; --height: ${imgHeight}; --placeholder-url: url(${placeholder});`}
-                    href={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=fullsize`}
-                    target="_blank"
-                    data-fancybox="gallery"
-                    class="thumbhash-img"
-                  >
-                    <Image
-                      id={asset.id}
-                      width={imgWidth}
-                      height={imgHeight}
-                      src={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=preview`}
-                      alt={getDescription(asset)}
-                    />
-                  </a>
-                );
-              })}
-          </section>
-        )
-      }
-    </main>
-
-    <script>
-      import { Fancybox } from "@fancyapps/ui/dist/fancybox/";
-
-      Fancybox.bind("[data-fancybox]", {
-        theme: "auto",
-        mainStyle: {
-          "--f-button-width": "44px",
-          "--f-button-height": "44px",
-          "--f-button-border-radius": "50%",
-          "--f-toolbar-padding": "16px",
-        },
-        Carousel: {
-          Arrows: false,
-          Toolbar: {
-            display: {
-              left: [],
-              middle: [],
-              right: ["close"],
-            },
-          },
-          transition: "slide",
-        },
-      });
-    </script>
-
-    <style is:global>
-      /* Minimal CSS reset */
-      *,
-      *::before,
-      *::after {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-      html,
-      body {
-        height: 100%;
-      }
-      img {
-        display: block;
-        max-width: 100%;
-      }
-      ul {
-        list-style: none;
-      }
-      h1 {
-        font-family: var(--font-unbounded);
-        margin-bottom: 1rem;
-         a {
-            text-decoration: none; /* no underline */
-            color: inherit; /* inherit color from parent */
-         }
-      }
-
-    </style>
 
     <style>
       main {
@@ -333,35 +225,100 @@ if (errorMessage === null) {
         }
       }
     </style>
-    <style>
-      .thumbhash-img {
-        background-image: var(--placeholder-url);
-        background-size: cover;
-        background-repeat: no-repeat;
+  </head>
+  <body>
+    <main>
+      {
+        errorMessage || album === undefined ? (
+          <p>{errorMessage}</p>
+        ) : (
+          <h1><a href="/">{album.albumName}</a></h1>
 
-        img {
-          opacity: 0;
-          transform: scale(1.03);
-          transition:
-            opacity 0.2s ease-in-out,
-            transform 0.3s ease-in-out;
-        }
-      }
+          <People album={album} />
 
-      .thumbhash-img {
-        img.loaded {
-          opacity: 1;
-          transform: scale(1);
-        }
+          <section class="justified-gallery" id="photoswipe">
+            {Object.values(displayAssets)
+              .toSorted((a, b) => new Date(a.fileCreatedAt).getTime() - new Date(b.fileCreatedAt).getTime())
+              .map((asset) => {
+                const height = Number(asset?.exifInfo?.exifImageHeight) ?? 1;
+                const width = Number(asset?.exifInfo?.exifImageWidth) ?? 1;
+
+                const orientation = [8, 6].includes(
+                  Number(asset?.exifInfo?.orientation),
+                )
+                  ? "portrait"
+                  : "landscape";
+
+                const imgHeight = orientation === "portrait" ? width : height;
+                const imgWidth = orientation === "portrait" ? height : width;
+
+                // helper: base64 string -> Uint8Array (Node has atob globally in Astro's runtime)
+                function toDataUrl(base64Hash: string) {
+                  const binary = atob(base64Hash);
+                  const bytes = new Uint8Array(binary.length);
+                  for (let i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                  }
+                  return thumbHashToDataURL(bytes);
+                }
+
+                const placeholder = asset.thumbhash ? toDataUrl(asset.thumbhash) : null;
+
+                return (
+                  <a
+                    style={`--width: ${imgWidth}; --height: ${imgHeight}; --placeholder-url: url(${placeholder});`}
+                    href={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=fullsize`}
+                    target="_blank"
+                    data-fancybox="gallery"
+                    class="thumbhash-img"
+                  >
+                    <Image
+                      id={asset.id}
+                      class="loadIn"
+                      width={imgWidth}
+                      height={imgHeight}
+                      src={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=preview`}
+                      alt={getDescription(asset)}
+                    />
+                  </a>
+                );
+              })}
+          </section>
+        )
       }
-    </style>
+    </main>
+
+    <script>
+      import { Fancybox } from "@fancyapps/ui/dist/fancybox/";
+
+      Fancybox.bind("[data-fancybox]", {
+        theme: "auto",
+        mainStyle: {
+          "--f-button-width": "44px",
+          "--f-button-height": "44px",
+          "--f-button-border-radius": "50%",
+          "--f-toolbar-padding": "16px",
+        },
+        Carousel: {
+          Arrows: false,
+          Toolbar: {
+            display: {
+              left: [],
+              middle: [],
+              right: ["close"],
+            },
+          },
+          transition: "slide",
+        },
+      });
+    </script>
     <script>
       function markLoaded(img: HTMLImageElement) {
         img.classList.add("loaded");
       }
 
       document
-        .querySelectorAll(".thumbhash-img > img")
+        .querySelectorAll("img.loadIn")
         .forEach((img: Element) => {
           const htmlImg = img as HTMLImageElement;
           if (htmlImg.complete && htmlImg.naturalWidth > 0) {

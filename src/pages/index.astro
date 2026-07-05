@@ -1,6 +1,8 @@
 ---
 import { Image } from "astro:assets";
 import { Font } from "astro:assets";
+import "../styles/styles.css";
+
 import { getAllAlbums, init, getAllSharedLinks } from "@immich/sdk";
 
 const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
@@ -117,6 +119,7 @@ let albums = albumsResponse
               <a href={`/${album.id}`}>
                 <span>
                   <Image
+                    class="loadIn"
                     style={{ objectFit: "cover" }}
                     height={300}
                     width={400}
@@ -130,35 +133,22 @@ let albums = albumsResponse
           ))
       }
     </ul>
-  </body><style>
-    img {
-      opacity: 0;
-      transform: scale(1.03);
-      transition:
-        opacity 0.2s ease-in-out,
-        transform 0.3s ease-in-out;
-    }
-
-    img.loaded {
-      opacity: 1;
-      transform: scale(1);
-    }
-  </style>
-  <script>
-    function markLoaded(img: HTMLImageElement) {
-      img.classList.add("loaded");
-    }
-
-    document.querySelectorAll("img").forEach((img: Element) => {
-      const htmlImg = img as HTMLImageElement;
-      if (htmlImg.complete && htmlImg.naturalWidth > 0) {
-        // already loaded from cache — no fade needed, just show it
-        markLoaded(htmlImg);
-      } else {
-        htmlImg.addEventListener("load", () => markLoaded(htmlImg), {
-          once: true,
-        });
+    <script>
+      function markLoaded(img: HTMLImageElement) {
+        img.classList.add("loaded");
       }
-    });
-  </script>
+
+      document.querySelectorAll("img.loadIn").forEach((img: Element) => {
+        const htmlImg = img as HTMLImageElement;
+        if (htmlImg.complete && htmlImg.naturalWidth > 0) {
+          // already loaded from cache — no fade needed, just show it
+          markLoaded(htmlImg);
+        } else {
+          htmlImg.addEventListener("load", () => markLoaded(htmlImg), {
+            once: true,
+          });
+        }
+      });
+    </script>
+  </body>
 </html>

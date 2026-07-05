@@ -1,0 +1,46 @@
+/* Minimal CSS reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+img {
+  display: block;
+  max-width: 100%;
+}
+ul {
+  list-style: none;
+}
+h1 {
+  font-family: var(--font-unbounded);
+    a {
+      text-decoration: none; /* no underline */
+      color: inherit; /* inherit color from parent */
+    }
+}
+
+.thumbhash-img {
+  background-image: var(--placeholder-url);
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+img.loadIn {
+  opacity: 0;
+  transform: scale(1.03);
+  transition:
+    opacity 0.2s ease-in-out,
+    transform 0.3s ease-in-out;
+}
+
+  img.loadIn.loaded {
+  opacity: 1;
+  transform: scale(1);
+}
