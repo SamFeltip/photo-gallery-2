@@ -1,6 +1,6 @@
 ---
 import { init, type AlbumResponseDto } from "@immich/sdk";
-import { getAlbumPeople } from "../pages/api/people/[id]";
+import { getAlbumPeople } from "../lib/immichHelpers";
 
 interface Props {
   album: AlbumResponseDto;
