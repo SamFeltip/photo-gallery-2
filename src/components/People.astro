@@ -21,13 +21,13 @@ const albumPeople = await getAlbumPeople(album.id);
 const people = Array.from(albumPeople.entries()); // [string, PersonResponseDto][]
 ---
 
-<ul>
+<ul id="people-list">
   {
     people
       .filter(([personId, person]) => person.name !== "")
       .map(([personId, person]) => (
         <li>
-          <span class="avatar-wrap">
+          <span class="avatar-wrap" data-person={personId}>
             <img
               class="loadIn avatar"
               height="100px"
@@ -165,11 +165,32 @@ const people = Array.from(albumPeople.entries()); // [string, PersonResponseDto]
 </style>
 
 <script>
+  import { type PersonEventDetails } from "../types/events";
+
   const wraps = document.querySelectorAll(".avatar-wrap");
 
   wraps.forEach((wrap) => {
     wrap.addEventListener("click", () => {
       const willActivate = !wrap.classList.contains("active");
+
+      const personId = (wrap as HTMLElement).dataset.person;
+      if (!personId) {
+        throw new Error("data-person was missing");
+      }
+
+      let event;
+      if (willActivate) {
+        event = new CustomEvent<PersonEventDetails>("person", {
+          detail: { personId, status: "active" },
+          bubbles: true,
+        });
+      } else {
+        event = new CustomEvent("person", {
+          detail: { personId, status: "disable" },
+          bubbles: true,
+        });
+      }
+      wrap.dispatchEvent(event);
 
       wrap.classList.remove("animate", "reverse");
       void (wrap as HTMLElement).offsetWidth; // force reflow so the animation restarts on repeat clicks

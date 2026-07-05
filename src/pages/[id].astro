@@ -1,5 +1,6 @@
 ---
 import { Font, Image } from "astro:assets";
+
 import "../styles/styles.css";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 
@@ -58,9 +59,11 @@ async function getAssetIdToStackIdMap() {
   return map;
 }
 
-async function getDisplayAssets(album: {assets: AssetResponseDto[] | undefined}) {
+async function getDisplayAssets() {
   
-  const rawAssets = album?.assets ?? []
+  const rawAssets = (await searchAssets({
+      metadataSearchDto: { albumIds: [id], withPeople: true, withStacked: true, withExif: true }
+    })).assets.items;
 
   // One extra request to resolve stack membership for all assets at once.
   const assetIdToStackId = await getAssetIdToStackIdMap();
@@ -145,10 +148,6 @@ let displayAssets: AssetResponseDto[] = [];
 
 if (errorMessage === null) {
   try {
-    // displayAssets = (await searchAssets({
-    //   metadataSearchDto: { albumIds: [id], withStacked: true, withExif: true }
-    // })).assets.items;
-    
     album = await getAlbumInfo({id: id});
     //@ts-ignore
     displayAssets = await getDisplayAssets(album);
@@ -264,6 +263,10 @@ if (errorMessage === null) {
 
                 const placeholder = asset.thumbhash ? toDataUrl(asset.thumbhash) : null;
 
+                const peopleIds = Object.fromEntries(
+                  asset.people?.map(person => ["data-person", person.id]) ?? []
+                );
+
                 return (
                   <a
                     style={`--width: ${imgWidth}; --height: ${imgHeight}; --placeholder-url: url(${placeholder});`}
@@ -271,6 +274,7 @@ if (errorMessage === null) {
                     target="_blank"
                     data-fancybox="gallery"
                     class="thumbhash-img"
+                    {...peopleIds}
                   >
                     <Image
                       id={asset.id}
@@ -280,6 +284,7 @@ if (errorMessage === null) {
                       src={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=preview`}
                       alt={getDescription(asset)}
                     />
+                    {asset.people?.map(person => <span style={{display: "none"}} class="data-person-id" data-person={person.id}></span>)}
                   </a>
                 );
               })}
@@ -331,5 +336,56 @@ if (errorMessage === null) {
           }
         });
     </script>
+    <script>
+      import { type PersonEventDetails } from "../types/events";
+
+      const main = document.querySelector("main");
+
+      const filteredPeople = new Set();
+
+      main?.addEventListener("person", (e:CustomEventInit<PersonEventDetails>) => {
+        if(!e.detail){
+          throw new Error("no details were added to person event.");
+        }
+
+        const {personId, status} = e.detail;
+
+        if(status == "active"){
+          filteredPeople.add(personId);
+        }else{
+          filteredPeople.delete(personId);
+        }
+        
+        const allPersonImages = document.querySelectorAll(`a.thumbhash-img`);
+        allPersonImages.forEach(anchor => anchor.classList.remove("show"));
+
+        let queryString = "a.thumbhash-img";
+        Array.from(filteredPeople).forEach(personIdFilter => {
+          queryString += `:has(span[data-person='${personIdFilter}'])`
+        });
+
+        const personImages = document.querySelectorAll(queryString);
+        personImages.forEach(anchor => anchor.classList.add("show"));
+
+        const photoList = document.querySelector(`section#photoswipe`);
+        if(filteredPeople.size === 0){
+          photoList?.classList.remove("filtered");
+        }else{
+          photoList?.classList.add("filtered");
+        }
+        
+        // const personImages = document.querySelectorAll(`a.thumbhash-img[data-person=${personId}]`);
+
+      })
+    </script>
+    <style>
+      #photoswipe.filtered a.show {
+        display: inherit;
+      }
+      
+      #photoswipe.filtered a {
+        display: none;
+      }
+    </style>
   </body>
 </html>
