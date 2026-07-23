@@ -64,6 +64,7 @@ let albums = albumsResponse
         padding-bottom: max(2.5vw, 12px);
 
         transition: scale 0.1s ease-in-out;
+
         &:hover {
           scale: 1.01;
         }
@@ -128,7 +129,6 @@ let albums = albumsResponse
                 <span>
                   <Image
                     class="loadIn"
-                    style={{ objectFit: "cover" }}
                     height={300}
                     width={400}
                     src={`${IMMICH_BASE_URL}/api/assets/${album.albumThumbnailAssetId}/thumbnail?key=${album.sharedKey}&size=preview`}
