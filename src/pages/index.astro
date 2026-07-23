@@ -50,45 +50,45 @@ let albums = albumsResponse
       ul#albums {
         display: grid;
         grid-template-columns: 1fr;
-        align-items: center;
         list-style: none;
         padding: 0;
         margin: max(2.5vw, 12px);
-        gap: max(2.5vw, 12px);
+        gap: 0 max(2.5vw, 12px);
       }
 
       li.album {
         display: grid;
-        grid-template-columns: 1fr;
-        align-items: center;
+        grid-row: span 2;
+        grid-template-rows: subgrid;
+        padding-bottom: max(2.5vw, 12px);
 
-        & a {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
+        transition: scale 0.1s ease-in-out;
+        &:hover {
+          scale: 1.01;
+        }
+
+        &:active {
+          scale: 1.02;
+        }
+
+        a {
+          display: contents; /* lets the children participate in the subgrid */
           text-decoration: none;
           color: inherit;
           text-transform: capitalize;
         }
 
-        & span {
+        img {
           aspect-ratio: 4 / 3;
-          height: 100%;
-          width: 100%;
-        }
-
-        & img {
-          aspect-ratio: 4 / 3;
-          height: 100%;
           width: 100%;
           object-fit: cover;
         }
 
-        & h2 {
+        h2 {
           font-family: var(--font-unbounded);
-
           margin: 0.5rem 0 0;
           font-size: 1.5rem;
+          align-self: start;
         }
       }
 
