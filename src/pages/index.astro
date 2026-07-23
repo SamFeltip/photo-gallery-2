@@ -52,6 +52,7 @@ let albums = albumsResponse
         grid-template-columns: 1fr;
         list-style: none;
         padding: 0;
+        padding-bottom: 3rem;
         margin: max(2.5vw, 12px);
         gap: 0 max(2.5vw, 12px);
       }
@@ -113,7 +114,7 @@ let albums = albumsResponse
     </style>
   </head>
   <body>
-    <ul id="albums" style={{ marginBottom: "1rem" }}>
+    <ul id="albums">
       {
         Object.values(albums)
           .toSorted(
