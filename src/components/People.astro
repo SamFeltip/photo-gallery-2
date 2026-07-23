@@ -1,12 +1,17 @@
 ---
-import { init, type AlbumResponseDto } from "@immich/sdk";
+import {
+  init,
+  type AlbumResponseDto,
+  type AssetResponseDto,
+} from "@immich/sdk";
 import { getAlbumPeople } from "../lib/immichHelpers";
 
 interface Props {
   album: AlbumResponseDto;
+  displayAssets: AssetResponseDto[];
 }
 
-const { album } = Astro.props;
+const { album, displayAssets } = Astro.props;
 const PERSON_API_KEY = import.meta.env.PERSON_API_KEY;
 
 const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
@@ -18,7 +23,14 @@ init({
 });
 
 const albumPeople = await getAlbumPeople(album.id);
-const people = Array.from(albumPeople.entries()); // [string, PersonResponseDto][]
+
+const displayedPeople = displayAssets
+  .flatMap((asset) => asset.people?.map((person) => person.id))
+  .filter((personId) => personId !== undefined);
+
+const people = Array.from(albumPeople.entries()).filter(
+  ([personId, _]) => displayedPeople.indexOf(personId) > -1,
+); // [string, PersonResponseDto][]
 ---
 
 <ul id="people-list">

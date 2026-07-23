@@ -232,7 +232,7 @@ if (errorMessage === null) {
         ) : (
           <h1><a href="/">{album.albumName}</a></h1>
 
-          <People album={album} />
+          <People album={album} displayAssets={displayAssets}/>
 
           <section class="justified-gallery" id="photoswipe">
             {Object.values(displayAssets)
