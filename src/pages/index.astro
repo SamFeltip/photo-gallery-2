@@ -78,8 +78,15 @@ let albums = albumsResponse
           text-transform: capitalize;
         }
 
-        img {
+        & span {
           aspect-ratio: 4 / 3;
+          height: 100%;
+          width: 100%;
+        }
+
+        & img {
+          aspect-ratio: 4 / 3;
+          height: 100%;
           width: 100%;
           object-fit: cover;
         }
