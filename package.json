@@ -18,5 +18,10 @@
     "astro": "^7.0.6",
     "smartypants": "^0.2.2",
     "thumbhash": "^0.1.1"
+  },
+  "devDependencies": {
+    "@iconify-json/mdi": "^1.2.3",
+    "@iconify-json/tabler": "^1.2.37",
+    "astro-icon": "^1.1.5"
   }
 }

@@ -1,0 +1,149 @@
+---
+import type { AssetStack } from "../types/assets";
+import { Image } from "astro:assets";
+import { type AssetResponseDto } from "@immich/sdk";
+import { thumbHashToDataURL } from "thumbhash";
+import { Icon } from "astro-icon/components";
+
+const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
+
+interface Props {
+  shareKey: string;
+  asset: AssetStack;
+}
+
+const { asset, shareKey } = Astro.props;
+
+function getDescription(asset: AssetResponseDto) {
+  return asset?.exifInfo?.description || asset?.originalFileName || "";
+}
+
+const height = Number(asset.bestItem.exifInfo?.exifImageHeight) ?? 1;
+const width = Number(asset.bestItem.exifInfo?.exifImageWidth) ?? 1;
+
+const orientation = [8, 6].includes(
+  Number(asset.bestItem.exifInfo?.orientation),
+)
+  ? "portrait"
+  : "landscape";
+
+const imgHeight = orientation === "portrait" ? width : height;
+const imgWidth = orientation === "portrait" ? height : width;
+
+// helper: base64 string -> Uint8Array (Node has atob globally in Astro's runtime)
+function toDataUrl(base64Hash: string) {
+  const binary = atob(base64Hash);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return thumbHashToDataURL(bytes);
+}
+
+const placeholder = asset.bestItem.thumbhash
+  ? toDataUrl(asset.bestItem.thumbhash)
+  : null;
+
+const peopleIds = Object.fromEntries(
+  asset.bestItem.people?.map((person) => ["data-person", person.id]) ?? [],
+);
+---
+
+<span class="album-wrapper">
+  <a
+    style={`--width: ${imgWidth}; --height: ${imgHeight}; --placeholder-url: url(${placeholder});`}
+    href={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=fullsize`}
+    data-download-src={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=preview`}
+    data-asset-id={asset.bestItem.id}
+    target="_blank"
+    data-fancybox={asset.id}
+    class="thumbhash-img"
+    {...peopleIds}
+  >
+    <span style={{ position: "relative" }}>
+      <span
+        style={{
+          color: "white",
+          position: "absolute",
+          zIndex: 1,
+          bottom: 0,
+          padding: "0.2rem",
+        }}
+        class="heart-wrapper"
+      >
+      </span>
+      {
+        asset.stackItems !== undefined && (
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              color: "white",
+              position: "absolute",
+              zIndex: 1,
+              top: 0,
+              right: 0,
+              padding: "0.2rem",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: "var(--font-overpass)",
+                fontSize: "0.7rem",
+                textBoxEdge: "cap alphabetic",
+                textBoxTrim: "trim-both",
+              }}
+            >
+              {asset.stackItems?.length + 1}
+            </p>
+            <Icon name="mdi:image-multiple" />
+          </span>
+        )
+      }
+      <Image
+        id={asset.bestItem.id}
+        class="loadIn"
+        width={imgWidth}
+        height={imgHeight}
+        src={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=preview`}
+        alt={getDescription(asset.bestItem)}
+      />
+    </span>
+
+    {
+      asset.bestItem.people?.map((person) => (
+        <span
+          style={{ display: "none" }}
+          class="data-person-id"
+          data-person={person.id}
+        />
+      ))
+    }
+  </a>
+  {
+    asset.stackItems?.map((stackAsset) => {
+      const stackAssetHeight =
+        Number(stackAsset.exifInfo?.exifImageHeight) ?? 1;
+      const stackAssetWidth = Number(stackAsset.exifInfo?.exifImageWidth) ?? 1;
+
+      return (
+        <div style={{ display: "none" }}>
+          <a
+            data-fancybox={asset.id}
+            href={`${IMMICH_BASE_URL}/api/assets/${stackAsset.id}/thumbnail?key=${shareKey}&size=fullsize`}
+            data-download-src={`${IMMICH_BASE_URL}/api/assets/${stackAsset.id}/thumbnail?key=${shareKey}&size=preview`}
+            data-asset-id={stackAsset.id}
+          >
+            <Image
+              id={stackAsset.id}
+              width={stackAssetWidth}
+              height={stackAssetHeight}
+              src={`${IMMICH_BASE_URL}/api/assets/${stackAsset.id}/thumbnail?key=${shareKey}&size=preview`}
+              alt={getDescription(stackAsset)}
+            />
+          </a>
+        </div>
+      );
+    })
+  }
+</span>
