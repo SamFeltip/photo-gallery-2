@@ -11,6 +11,7 @@ import AssetImg from "../components/AssetImg.astro"
 
 import type { AssetStack } from "../types/assets";
 import { Icon } from "astro-icon/components";
+import { getShareKey, getDisplayAssets } from "../lib/displayAssetHelpers";
 
 export async function getStaticPaths() {
   const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
@@ -33,167 +34,11 @@ const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
 const API_KEY = import.meta.env.API_KEY;
 init({ baseUrl: `${IMMICH_BASE_URL}/api`, apiKey: API_KEY });
 
-
-// --- helper accessors (adjust here if your API shape differs) ---
-function getRating(asset: AssetResponseDto) {
-  // ACCESSOR SPOT 1: change if rating isn't at asset.exifInfo.rating
-  return asset?.exifInfo?.rating ?? 0;
-}
-
-
-// --- fetch all stacks once, build assetId -> stackId lookup ---
-// Album/asset responses don't reliably include stack membership, so we
-// hit /api/stacks separately and index it ourselves.
-async function getAssetIdToStackIdMap(): Promise<Map<string, StackResponseDto>> {
-
-  const stacks = await searchStacks({});
-
-  const map = new Map<string, StackResponseDto>();
-  for (const stack of stacks) {
-    // Each stack has an id and an array of member assets (including the primary).
-    for (const asset of stack.assets) {
-      if (asset.id) {
-        map.set(asset.id, stack);
-      }
-    }
-  }
-  return map;
-}
-
-/**
- * Reads the timestamp to sort an asset by, preferring `localDateTime` and
- * falling back to `fileCreatedAt`.
- *
- * @param asset - the asset to read a timestamp from
- * @returns milliseconds since epoch, or `0` if neither field parses
- */
-function getAssetTimestamp(asset: AssetResponseDto): number {
-  const raw = asset.localDateTime ?? asset.fileCreatedAt;
-  const time = raw ? new Date(raw).getTime() : NaN;
-  return Number.isNaN(time) ? 0 : time;
-}
-
-/**
- * Builds the ordered list of {@link AssetStack} entries to display for the
- * album.
- *
- * - Assets are grouped by stack membership (an unstacked asset forms its
- *   own single-item group, keyed by its own id).
- * - A stacked group's `bestItem` is whichever member is the stack's
- *   `primaryAssetId`; if that primary asset isn't among this album's
- *   results, the whole stack is skipped (matches prior behavior, which
- *   never recorded a stack unless its primary asset was encountered).
- * - An unstacked group's `bestItem` is its asset (falling back to the
- *   highest-rated member in the unlikely case of duplicates).
- * - Groups whose `bestItem` is rated 1 or 2 stars are filtered out.
- * - The result is sorted ascending by `bestItem`'s `localDateTime`
- *   (falling back to `fileCreatedAt`).
- *
- * @returns the ordered list of display-ready asset stacks
- */
-async function getDisplayAssets(): Promise<AssetStack[]> {
-
-  const rawAssets = (await searchAssets({
-      metadataSearchDto: { albumIds: [id], withPeople: true, withStacked: true, withExif: true }
-    })).assets.items;
-
-  const dedupedAssets = Array.from(
-    new Map(rawAssets.map((asset) => [asset.id, asset])).values(),
-  );
-
-  // One extra request to resolve stack membership for all assets at once.
-  const assetIdToStackId = await getAssetIdToStackIdMap();
-
-  // --- group deduped assets by stack (or by their own id when unstacked) ---
-  const membersByGroup = new Map<string, AssetResponseDto[]>();
-  const stackByGroup = new Map<string, StackResponseDto>();
-
-  for (const asset of dedupedAssets) {
-    const stack = assetIdToStackId.get(asset.id) ?? null;
-    const groupId: string = stack?.id ?? asset.id;
-
-    if (stack != null) {
-      stackByGroup.set(groupId, stack);
-    }
-
-    const members = membersByGroup.get(groupId);
-    if (members) {
-      members.push(asset);
-    } else {
-      membersByGroup.set(groupId, [asset]);
-    }
-  }
-
-  // --- collapse each group down to its bestItem ---
-  const groups: AssetStack[] = [];
-
-  for (const [groupId, members] of membersByGroup) {
-    const stack = stackByGroup.get(groupId);
-
-    if (stack) {
-      const bestItem = members.find((asset) => asset.id === stack.primaryAssetId);
-      if (!bestItem) continue; // primary not present in this album's results
-
-      groups.push({ id: groupId, bestItem, stackItems: members.filter(asset => asset.id !== bestItem.id) });
-      continue;
-    }
-
-    // Unstacked group: normally a single asset; fall back to the
-    // highest-rated member if duplicates were somehow present.
-    const bestItem = members.reduce((best, asset) =>
-      getRating(asset) > getRating(best) ? asset : best,
-    );
-    groups.push({ id: groupId, bestItem });
-  }
-
-  // --- filter out 1-star and 2-star assets, then order chronologically ---
-  return groups
-    .filter((group) => [null, 0, 3, 4, 5].includes(getRating(group.bestItem)))
-    .sort((a, b) => getAssetTimestamp(a.bestItem) - getAssetTimestamp(b.bestItem));
-}
-
-async function getShareKey() {
-  let links = null;
-
-  if (!id) {
-    throw new Error("No album id provided in route.");
-  }
-
-  const res = await fetch(`${IMMICH_BASE_URL}/api/shared-links`, {
-    headers: {
-      "x-api-key": API_KEY,
-      Accept: "application/json",
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch album (${res.status} ${res.statusText})`);
-  } else {
-    links = await res.json();
-  }
-
-  if (!Array.isArray(links)) {
-    throw new Error("Unexpected response shape for shared links.");
-  }
-
-  const link = links.find(
-    (link) =>
-      link.album.id === id &&
-      (link.expiresAt == null || new Date(link.expiresAt) > new Date()),
-  );
-
-  if (!link) {
-    throw new Error(`No shared link found for album id ${id}`);
-  }
-
-  return link.key;
-}
-
 let errorMessage = null;
 
 let shareKey = null;
 try {
-  shareKey = await getShareKey();
+  shareKey = await getShareKey(id);
 } catch (err) {
   if (err instanceof Error) {
     errorMessage = `Error fetching shared link: ${err.message}`;
@@ -206,7 +51,7 @@ let displayAssets: AssetStack[] = [];
 if (errorMessage === null) {
   try {
     album = await getAlbumInfo({id: id});
-    displayAssets = await getDisplayAssets();
+    displayAssets = await getDisplayAssets(id);
   } catch (err) {
     if (err instanceof Error) {
       errorMessage = `Error fetching album: ${err.message}`;
@@ -301,6 +146,12 @@ if (errorMessage === null) {
     <template id="heart">
       <Icon name="tabler:heart-filled" />
     </template>
+    <template id="heart-button">
+      <Icon name="iconamoon:heart-thin" />
+    </template>
+    <template id="heart-button-filled">
+      <Icon name="iconamoon:heart-fill" />
+    </template>
     <main>
       {
         errorMessage || album === undefined ? (
@@ -314,7 +165,9 @@ if (errorMessage === null) {
             {displayAssets
               .map((asset) => {
                 return (
-                  <AssetImg asset={asset} shareKey={shareKey}/>
+                  <span class="album-wrapper">
+                    <AssetImg asset={asset} shareKey={shareKey}/>
+                  </span>
                 );
               })}
           </section>
@@ -323,33 +176,11 @@ if (errorMessage === null) {
     </main>
 
     <script>
-      const refreshHearts = (setHearts?: string[]) => {
-          const hearts: string[] = setHearts ?? JSON.parse(localStorage.getItem("hearts") ?? "[]");
 
-          const template: HTMLTemplateElement | null = document.querySelector("template#heart");
-
-          if (!template) return;
-
-          hearts.forEach(assetId => {
-              const albumWrapper = document.querySelector(
-                  `span.album-wrapper a[data-asset-id="${assetId}"]`
-              )?.closest("span.album-wrapper");
-
-              if (!albumWrapper) return;
-
-              const heartWrapper = albumWrapper.querySelector(".heart-wrapper");
-
-              if (!heartWrapper) return;
-
-              heartWrapper.replaceChildren(
-                  template.content.cloneNode(true)
-              );
-          });
-      };
-
-      document.addEventListener("DOMContentLoaded", () => refreshHearts());
-    
+      import {clickHeartButton, initHeartButtonIcon, refreshHearts } from "../lib/fancyboxHeartButtonHelpers";
       import { Fancybox } from "@fancyapps/ui/dist/fancybox/";
+      
+      document.addEventListener("DOMContentLoaded", () => refreshHearts());
 
       Fancybox.bind("[data-fancybox]", {
         theme: "auto",
@@ -364,32 +195,8 @@ if (errorMessage === null) {
           Toolbar: {
             items: {
               heart: {
-                tpl: `<button class="f-button heart-carosel">  
-                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="1 1 22 22">
-                    <path d="M0 0h24v24H0z" fill="none" />
-                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M19.071 13.142L13.414 18.8a2 2 0 0 1-2.828 0l-5.657-5.657A5 5 0 1 1 12 6.072a5 5 0 0 1 7.071 7.07" />
-                  </svg>
-                </button>`,
-                click: (e) => {
-                  
-                  if("assetId" in e.getPage().slides[0]){
-                    /** @ts-ignore */
-                    const assetId = e.getPage().slides[0].assetId
-                    
-                    let hearts: string[] = JSON.parse(localStorage.getItem("hearts") ?? "[]");
-                    if(hearts.includes(assetId)){
-                      hearts = hearts.filter(item => item !== assetId);
-                    }else{
-                      hearts.push(assetId);
-                    }
-                    localStorage.setItem("hearts", JSON.stringify(hearts));
-
-                    console.debug({assetId});
-
-                    refreshHearts(hearts);
-                  }
-
-                },
+                tpl: `<button class="f-button heart-carosel"></button>`,
+                click: clickHeartButton,
               },
             },
             display: {
@@ -399,8 +206,14 @@ if (errorMessage === null) {
             },
           },
           transition: "slide",
+          on: {
+            "contentLoading": initHeartButtonIcon,
+            "change": initHeartButtonIcon
+          }
         },
       });
+
+      
     </script>
     <script>
       function markLoaded(img: HTMLImageElement) {
@@ -429,6 +242,8 @@ if (errorMessage === null) {
       const filteredPeople = new Set();
 
       main?.addEventListener("person", (e:CustomEventInit<PersonEventDetails>) => {
+        console.debug("caught person event");
+
         if(!e.detail){
           throw new Error("no details were added to person event.");
         }
@@ -449,6 +264,7 @@ if (errorMessage === null) {
           queryString += `:has(span[data-person='${personIdFilter}'])`
         });
 
+        console.debug("person images being queried");
         const personImages = document.querySelectorAll(queryString);
         personImages.forEach(anchor => anchor.classList.add("show"));
 
@@ -458,17 +274,10 @@ if (errorMessage === null) {
         }else{
           photoList?.classList.add("filtered");
         }
-        
-        // const personImages = document.querySelectorAll(`a.thumbhash-img[data-person=${personId}]`);
-
       })
     </script>
-    <style>
-      #photoswipe.filtered a.show {
-        display: inherit;
-      }
-      
-      #photoswipe.filtered a {
+    <style is:global>
+      #photoswipe.filtered a:not(.show) {
         display: none;
       }
     </style>
