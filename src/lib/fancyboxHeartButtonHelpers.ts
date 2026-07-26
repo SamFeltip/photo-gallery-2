@@ -88,8 +88,8 @@ export function refreshHearts(setHearts?: string[]) {
   // populate valid hearts
   hearts.forEach((assetId) => {
     const albumWrapper = document
-      .querySelector(`span.album-wrapper a[data-asset-id="${assetId}"]`)
-      ?.closest("span.album-wrapper");
+      .querySelector(`span.asset-wrapper a[data-asset-id="${assetId}"]`)
+      ?.closest("span.asset-wrapper");
 
     if (!albumWrapper) return;
 

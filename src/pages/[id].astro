@@ -94,7 +94,7 @@ if (errorMessage === null) {
 
         padding-bottom: 3rem;
 
-        .album-wrapper {
+        .asset-wrapper {
           display: contents;
         }
 
@@ -165,7 +165,7 @@ if (errorMessage === null) {
             {displayAssets
               .map((asset) => {
                 return (
-                  <span class="album-wrapper">
+                  <span class="asset-wrapper">
                     <AssetImg asset={asset} shareKey={shareKey} albumId={id}/>
                   </span>
                 );
