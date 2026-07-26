@@ -181,6 +181,7 @@ if (errorMessage === null) {
       }
 
       .justified-gallery {
+        --scale-factor: 1.01;
         --space: clamp(12px, 1.25vw, 6px);
         --min-height: clamp(200px, 20vw, 400px);
 
@@ -190,6 +191,16 @@ if (errorMessage === null) {
 
         padding-bottom: 3rem;
 
+        .thumbhash-img {
+          --border-radius: 2px;
+          border-radius: var(--border-radius);
+          overflow: hidden;
+
+          &:hover,&:focus-visible {
+            border-radius: calc(var(--border-radius) * var(--scale-factor))
+          }
+        }
+
         a {
           flex-grow: calc(var(--width) * (100000 / var(--height)));
           flex-basis: calc(var(--min-height) * (var(--width) / var(--height)));
@@ -197,7 +208,7 @@ if (errorMessage === null) {
           overflow: hidden;
           opacity: 1;
           transition: all 0.05s ease-in-out;
-
+          
           img {
             display: block;
             object-fit: cover;
@@ -205,13 +216,11 @@ if (errorMessage === null) {
             width: 100%;
           }
 
-          &:focus-visible {
+          &:hover,&:focus-visible {
             outline: 3px solid var(--outline);
             outline-offset: 2px;
-            transform: scale(1.05);
+            scale: var(--scale-factor);
             z-index: 1;
-            border-radius: 2px;
-            box-shadow: 0 2px 4px 2px rgba(0, 0, 0, 0.1);
           }
 
           &.hidden {

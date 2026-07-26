@@ -47,7 +47,7 @@ let albums = albumsResponse
     <Font cssVariable="--font-unbounded" />
 
     <style>
-      ul#albums {
+      section#albums {
         display: grid;
         grid-template-columns: 1fr;
         list-style: none;
@@ -57,27 +57,29 @@ let albums = albumsResponse
         gap: 0 max(2.5vw, 12px);
       }
 
-      li.album {
+      .album {
         display: grid;
         grid-row: span 2;
         grid-template-rows: subgrid;
         padding-bottom: max(2.5vw, 12px);
 
-        transition: scale 0.1s ease-in-out;
-
-        &:hover {
-          scale: 1.01;
-        }
+        transition:
+          scale 0.1s ease-in-out,
+          border-radius 0.1s ease-in-out;
+        text-decoration: none;
+        color: inherit;
+        text-transform: capitalize;
 
         &:active {
           scale: 1.02;
         }
 
-        a {
-          display: contents; /* lets the children participate in the subgrid */
-          text-decoration: none;
-          color: inherit;
-          text-transform: capitalize;
+        &:hover,
+        &:focus-visible {
+          outline: 3px solid var(--outline);
+          outline-offset: 2px;
+          scale: 1.01;
+          z-index: 1;
         }
 
         & span {
@@ -91,6 +93,7 @@ let albums = albumsResponse
           height: 100%;
           width: 100%;
           object-fit: cover;
+          border-radius: 2px;
         }
 
         h2 {
@@ -102,30 +105,30 @@ let albums = albumsResponse
       }
 
       @media screen and (min-width: 400px) {
-        ul#albums {
+        section#albums {
           grid-template-columns: repeat(2, 1fr);
         }
       }
 
       @media screen and (min-width: 650px) {
-        ul#albums {
+        section#albums {
           grid-template-columns: repeat(3, 1fr);
         }
       }
     </style>
   </head>
   <body>
-    <ul id="albums">
-      {
-        Object.values(albums)
-          .toSorted(
-            (a, b) =>
-              new Date(b.startDate ?? 0).getTime() -
-              new Date(a.startDate ?? 0).getTime(),
-          )
-          .map((album) => (
-            <li class="album" id={album.id}>
-              <a href={`/${album.id}`}>
+    <main>
+      <section id="albums">
+        {
+          Object.values(albums)
+            .toSorted(
+              (a, b) =>
+                new Date(b.startDate ?? 0).getTime() -
+                new Date(a.startDate ?? 0).getTime(),
+            )
+            .map((album) => (
+              <a class="album" id={album.id} href={`/${album.id}`}>
                 <span>
                   <Image
                     class="loadIn"
@@ -137,10 +140,11 @@ let albums = albumsResponse
                 </span>
                 <h2>{album.albumName}</h2>
               </a>
-            </li>
-          ))
-      }
-    </ul>
+            ))
+        }
+      </section>
+    </main>
+
     <script>
       function markLoaded(img: HTMLImageElement) {
         img.classList.add("loaded");
