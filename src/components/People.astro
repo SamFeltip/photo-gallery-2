@@ -1,14 +1,11 @@
 ---
-import {
-  init,
-  type AlbumResponseDto,
-  type AssetResponseDto,
-} from "@immich/sdk";
+import { init, type AlbumResponseDto } from "@immich/sdk";
 import { getAlbumPeople } from "../lib/immichHelpers";
+import type { AssetStack } from "../types/assets";
 
 interface Props {
   album: AlbumResponseDto;
-  displayAssets: AssetResponseDto[];
+  displayAssets: AssetStack[];
 }
 
 const { album, displayAssets } = Astro.props;
@@ -25,7 +22,7 @@ init({
 const albumPeople = await getAlbumPeople(album.id);
 
 const displayedPeople = displayAssets
-  .flatMap((asset) => asset.people?.map((person) => person.id))
+  .flatMap((asset) => asset.bestItem.people?.map((person) => person.id))
   .filter((personId) => personId !== undefined);
 
 const people = Array.from(albumPeople.entries()).filter(
@@ -36,8 +33,8 @@ const people = Array.from(albumPeople.entries()).filter(
 <ul id="people-list">
   {
     people
-      .filter(([personId, person]) => person.name !== "")
-      .map(([personId, person]) => (
+      .filter(([_, person]) => person.name !== "")
+      .map(([personId, _]) => (
         <li>
           <span class="avatar-wrap" data-person={personId}>
             <img

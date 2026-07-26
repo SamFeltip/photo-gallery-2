@@ -5,8 +5,9 @@ import "../styles/styles.css";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 
 import { thumbHashToDataURL } from "thumbhash";
-import { init, searchStacks,getAlbumInfo, type AlbumResponseDto, getAllAlbums, type AssetResponseDto, getAssetMetadata, searchAssets } from "@immich/sdk";
+import { init, searchStacks,getAlbumInfo, type AlbumResponseDto, getAllAlbums, type AssetResponseDto, getAssetMetadata, searchAssets, type StackResponseDto } from "@immich/sdk";
 import People from "../components/People.astro";
+import type { AssetStack } from "../types/assets";
 
 export async function getStaticPaths() {
   const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
@@ -40,14 +41,16 @@ function getDescription(asset: AssetResponseDto) {
   return asset?.exifInfo?.description || asset?.originalFileName || "";
 }
 
+
+
 // --- fetch all stacks once, build assetId -> stackId lookup ---
 // Album/asset responses don't reliably include stack membership, so we
 // hit /api/stacks separately and index it ourselves.
-async function getAssetIdToStackIdMap() {
+async function getAssetIdToStackIdMap(): Promise<Map<string, StackResponseDto>> {
 
   const stacks = await searchStacks({});
 
-  const map = new Map<string, any>();
+  const map = new Map<string, StackResponseDto>();
   for (const stack of stacks) {
     // Each stack has an id and an array of member assets (including the primary).
     for (const asset of stack.assets) {
@@ -59,40 +62,96 @@ async function getAssetIdToStackIdMap() {
   return map;
 }
 
-async function getDisplayAssets() {
-  
+/**
+ * Reads the timestamp to sort an asset by, preferring `localDateTime` and
+ * falling back to `fileCreatedAt`.
+ *
+ * @param asset - the asset to read a timestamp from
+ * @returns milliseconds since epoch, or `0` if neither field parses
+ */
+function getAssetTimestamp(asset: AssetResponseDto): number {
+  const raw = asset.localDateTime ?? asset.fileCreatedAt;
+  const time = raw ? new Date(raw).getTime() : NaN;
+  return Number.isNaN(time) ? 0 : time;
+}
+
+/**
+ * Builds the ordered list of {@link AssetStack} entries to display for the
+ * album.
+ *
+ * - Assets are grouped by stack membership (an unstacked asset forms its
+ *   own single-item group, keyed by its own id).
+ * - A stacked group's `bestItem` is whichever member is the stack's
+ *   `primaryAssetId`; if that primary asset isn't among this album's
+ *   results, the whole stack is skipped (matches prior behavior, which
+ *   never recorded a stack unless its primary asset was encountered).
+ * - An unstacked group's `bestItem` is its asset (falling back to the
+ *   highest-rated member in the unlikely case of duplicates).
+ * - Groups whose `bestItem` is rated 1 or 2 stars are filtered out.
+ * - The result is sorted ascending by `bestItem`'s `localDateTime`
+ *   (falling back to `fileCreatedAt`).
+ *
+ * @returns the ordered list of display-ready asset stacks
+ */
+async function getDisplayAssets(): Promise<AssetStack[]> {
+
   const rawAssets = (await searchAssets({
       metadataSearchDto: { albumIds: [id], withPeople: true, withStacked: true, withExif: true }
     })).assets.items;
 
+  const dedupedAssets = Array.from(
+    new Map(rawAssets.map((asset) => [asset.id, asset])).values(),
+  );
+
   // One extra request to resolve stack membership for all assets at once.
   const assetIdToStackId = await getAssetIdToStackIdMap();
 
-  // --- collapse stacks to their highest-rated asset ---
-  const bestByGroup = new Map<string, AssetResponseDto>();
+  // --- group deduped assets by stack (or by their own id when unstacked) ---
+  const membersByGroup = new Map<string, AssetResponseDto[]>();
+  const stackByGroup = new Map<string, StackResponseDto>();
 
-  for (const asset of rawAssets) {
+  for (const asset of dedupedAssets) {
     const stack = assetIdToStackId.get(asset.id) ?? null;
-    // Assets not in a stack are their own group, keyed by their own id.
+    const groupId: string = stack?.id ?? asset.id;
 
     if (stack != null) {
-      if (stack.primaryAssetId === asset.id) {
-        bestByGroup.set(stack?.id, asset);
-      }
-      continue;
+      stackByGroup.set(groupId, stack);
     }
 
-    // asset is not in a stack. check it isn't already present and add.
-    const existing = bestByGroup.get(asset.id);
-    if (!existing || getRating(asset) > getRating(existing)) {
-      bestByGroup.set(asset.id, asset);
+    const members = membersByGroup.get(groupId);
+    if (members) {
+      members.push(asset);
+    } else {
+      membersByGroup.set(groupId, [asset]);
     }
   }
 
-  // --- filter out 1-star assets ---
-  return Array.from(bestByGroup.values()).filter((asset) =>
-    [null, 0, 3, 4, 5].includes(getRating(asset)),
-  );
+  // --- collapse each group down to its bestItem ---
+  const groups: AssetStack[] = [];
+
+  for (const [groupId, members] of membersByGroup) {
+    const stack = stackByGroup.get(groupId);
+
+    if (stack) {
+      const bestItem = members.find((asset) => asset.id === stack.primaryAssetId);
+      if (!bestItem) continue; // primary not present in this album's results
+
+      groups.push({ id: groupId, bestItem, stackItems: members.filter(asset => asset.id !== bestItem.id) });
+      continue;
+    }
+
+    // Unstacked group: normally a single asset; fall back to the
+    // highest-rated member if duplicates were somehow present.
+    const bestItem = members.reduce((best, asset) =>
+      getRating(asset) > getRating(best) ? asset : best,
+    );
+    groups.push({ id: groupId, bestItem });
+  }
+
+  // --- filter out 1-star and 2-star assets, then order chronologically ---
+  return groups
+    .filter((group) => [null, 0, 3, 4, 5].includes(getRating(group.bestItem)))
+    .sort((a, b) => getAssetTimestamp(a.bestItem) - getAssetTimestamp(b.bestItem));
 }
 
 async function getShareKey() {
@@ -144,13 +203,12 @@ try {
 }
 
 let album: AlbumResponseDto | undefined;
-let displayAssets: AssetResponseDto[] = [];
+let displayAssets: AssetStack[] = [];
 
 if (errorMessage === null) {
   try {
     album = await getAlbumInfo({id: id});
-    //@ts-ignore
-    displayAssets = await getDisplayAssets(album);
+    displayAssets = await getDisplayAssets();
   } catch (err) {
     if (err instanceof Error) {
       errorMessage = `Error fetching album: ${err.message}`;
@@ -246,14 +304,13 @@ if (errorMessage === null) {
           <People album={album} displayAssets={displayAssets}/>
 
           <section class="justified-gallery" id="photoswipe">
-            {Object.values(displayAssets)
-              .toSorted((a, b) => new Date(a.fileCreatedAt).getTime() - new Date(b.fileCreatedAt).getTime())
+            {displayAssets
               .map((asset) => {
-                const height = Number(asset?.exifInfo?.exifImageHeight) ?? 1;
-                const width = Number(asset?.exifInfo?.exifImageWidth) ?? 1;
+                const height = Number(asset.bestItem.exifInfo?.exifImageHeight) ?? 1;
+                const width = Number(asset.bestItem.exifInfo?.exifImageWidth) ?? 1;
 
                 const orientation = [8, 6].includes(
-                  Number(asset?.exifInfo?.orientation),
+                  Number(asset.bestItem.exifInfo?.orientation),
                 )
                   ? "portrait"
                   : "landscape";
@@ -271,31 +328,52 @@ if (errorMessage === null) {
                   return thumbHashToDataURL(bytes);
                 }
 
-                const placeholder = asset.thumbhash ? toDataUrl(asset.thumbhash) : null;
+                const placeholder = asset.bestItem.thumbhash ? toDataUrl(asset.bestItem.thumbhash) : null;
 
                 const peopleIds = Object.fromEntries(
-                  asset.people?.map(person => ["data-person", person.id]) ?? []
+                  asset.bestItem.people?.map(person => ["data-person", person.id]) ?? []
                 );
 
                 return (
+                  <>
                   <a
                     style={`--width: ${imgWidth}; --height: ${imgHeight}; --placeholder-url: url(${placeholder});`}
-                    href={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=fullsize`}
+                    href={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=fullsize`}
                     target="_blank"
-                    data-fancybox="gallery"
+                    data-fancybox={asset.id}
                     class="thumbhash-img"
                     {...peopleIds}
                   >
                     <Image
-                      id={asset.id}
+                      id={asset.bestItem.id}
                       class="loadIn"
                       width={imgWidth}
                       height={imgHeight}
-                      src={`${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=preview`}
-                      alt={getDescription(asset)}
+                      src={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=preview`}
+                      alt={getDescription(asset.bestItem)}
                     />
-                    {asset.people?.map(person => <span style={{display: "none"}} class="data-person-id" data-person={person.id}></span>)}
+                    {asset.bestItem.people?.map(person => <span style={{display: "none"}} class="data-person-id" data-person={person.id}></span>)}
                   </a>
+                  {
+                    asset.stackItems?.map(stackAsset => {
+                      const stackAssetHeight = Number(stackAsset.exifInfo?.exifImageHeight) ?? 1;
+                      const stackAssetWidth = Number(stackAsset.exifInfo?.exifImageWidth) ?? 1;
+
+                      return (<div style={{display: "none"}}>
+                        <a data-fancybox={asset.id} href={`${IMMICH_BASE_URL}/api/assets/${stackAsset.id}/thumbnail?key=${shareKey}&size=fullsize`}>
+                          <Image
+                            id={stackAsset.id}
+                            width={stackAssetWidth}
+                            height={stackAssetHeight}
+                            
+                            src={`${IMMICH_BASE_URL}/api/assets/${stackAsset.id}/thumbnail?key=${shareKey}&size=preview`}
+                            alt={getDescription(stackAsset)}
+                          />
+                        </a>
+                      </div>)
+                    })
+                  }
+                  </>
                 );
               })}
           </section>
