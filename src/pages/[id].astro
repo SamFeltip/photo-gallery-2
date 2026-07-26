@@ -1,17 +1,17 @@
 ---
 import { Font } from "astro:assets";
 
-
 import "../styles/styles.css";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 
-import { init, searchStacks,getAlbumInfo, type AlbumResponseDto, getAllAlbums, type AssetResponseDto, getAssetMetadata, searchAssets, type StackResponseDto } from "@immich/sdk";
+import { init,getAlbumInfo, type AlbumResponseDto, getAllAlbums} from "@immich/sdk";
 import People from "../components/People.astro";
 import AssetImg from "../components/AssetImg.astro"
 
 import type { AssetStack } from "../types/assets";
 import { Icon } from "astro-icon/components";
-import { getShareKey, getDisplayAssets } from "../lib/displayAssetHelpers";
+import { getDisplayAssets } from "../lib/displayAssetHelpers";
+import { getShareKey } from "../lib/shareKey";
 
 export async function getStaticPaths() {
   const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
@@ -166,7 +166,7 @@ if (errorMessage === null) {
               .map((asset) => {
                 return (
                   <span class="album-wrapper">
-                    <AssetImg asset={asset} shareKey={shareKey}/>
+                    <AssetImg asset={asset} shareKey={shareKey} albumId={id}/>
                   </span>
                 );
               })}

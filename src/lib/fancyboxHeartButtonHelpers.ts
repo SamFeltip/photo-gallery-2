@@ -60,6 +60,11 @@ export function initHeartButtonIcon(api: CarouselInstance) {
   setButton(button, true);
 }
 
+/**
+ * run through all "hearted" asset ids and
+ * @param setHearts assetIds for assets that have been hearted
+ * @returns
+ */
 export function refreshHearts(setHearts?: string[]) {
   const hearts: string[] =
     setHearts ?? JSON.parse(localStorage.getItem("hearts") ?? "[]");
@@ -67,8 +72,20 @@ export function refreshHearts(setHearts?: string[]) {
   const template: HTMLTemplateElement | null =
     document.querySelector("template#heart");
 
-  if (!template) return;
+  if (!template) {
+    console.error("no heart template");
+    return;
+  }
 
+  // remove all hearts
+  document
+    .querySelectorAll(".justified-gallery span.heart-wrapper")
+    .forEach((elem) => {
+      console.debug("resetting");
+      elem.textContent = "";
+    });
+
+  // populate valid hearts
   hearts.forEach((assetId) => {
     const albumWrapper = document
       .querySelector(`span.album-wrapper a[data-asset-id="${assetId}"]`)
