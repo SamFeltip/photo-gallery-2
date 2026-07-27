@@ -10,10 +10,9 @@ const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
 interface Props {
   shareKey: string;
   asset: AssetStack;
-  albumId: string;
 }
 
-const { albumId, asset, shareKey } = Astro.props;
+const { asset, shareKey } = Astro.props;
 
 function getDescription(asset: AssetResponseDto) {
   return asset?.exifInfo?.description || asset?.originalFileName || "";
@@ -55,7 +54,6 @@ const peopleIds = Object.fromEntries(
   href={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=fullsize`}
   data-download-src={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=preview`}
   data-asset-id={asset.bestItem.id}
-  data-album-id={albumId}
   target="_blank"
   data-fancybox={asset.id}
   class="thumbhash-img"

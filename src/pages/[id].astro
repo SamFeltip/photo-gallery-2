@@ -152,7 +152,7 @@ if (errorMessage === null) {
     <template id="heart-button-filled">
       <Icon name="iconamoon:heart-fill" />
     </template>
-    <main>
+    <main album-id={id}>
       {
         errorMessage || album === undefined ? (
           <p>{errorMessage}</p>
@@ -166,7 +166,7 @@ if (errorMessage === null) {
               .map((asset) => {
                 return (
                   <span class="asset-wrapper">
-                    <AssetImg asset={asset} shareKey={shareKey} albumId={id}/>
+                    <AssetImg asset={asset} shareKey={shareKey} />
                   </span>
                 );
               })}
@@ -197,7 +197,7 @@ if (errorMessage === null) {
               heart: {
                 tpl: `<button class="f-button heart-carosel"></button>`,
                 click: clickHeartButton,
-              },
+              }
             },
             display: {
               left: [],

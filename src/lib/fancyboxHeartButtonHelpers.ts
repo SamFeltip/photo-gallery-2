@@ -2,21 +2,36 @@ import type { CarouselInstance } from "@fancyapps/ui";
 
 export function clickHeartButton(instance: CarouselInstance) {
   const initSlide = instance.getPage().slides[0];
-  if ("assetId" in initSlide && typeof initSlide.assetId === "string") {
-    const assetId = initSlide.assetId;
-
-    let hearts: string[] = JSON.parse(localStorage.getItem("hearts") ?? "[]");
-    if (hearts.includes(assetId)) {
-      hearts = hearts.filter((item) => item !== assetId);
-    } else {
-      hearts.push(assetId);
-    }
-    localStorage.setItem("hearts", JSON.stringify(hearts));
-
-    console.debug({ assetId });
-
-    refreshHearts(hearts);
+  if (
+    "assetId" in initSlide === false ||
+    typeof initSlide.assetId !== "string"
+  ) {
+    console.error("assetId does not exist");
+    return;
   }
+  const albumId = document
+    .querySelector("[album-id]")
+    ?.getAttribute("album-id");
+  if (!albumId) {
+    console.error("no album id");
+    return;
+  }
+
+  const assetId = initSlide.assetId;
+
+  let hearts: string[] = JSON.parse(
+    localStorage.getItem(`hearts-${albumId}`) ?? "[]",
+  );
+  if (hearts.includes(assetId)) {
+    hearts = hearts.filter((item) => item !== assetId);
+  } else {
+    hearts.push(assetId);
+  }
+  localStorage.setItem(`hearts-${albumId}`, JSON.stringify(hearts));
+
+  console.debug({ assetId });
+
+  refreshHearts(hearts);
 
   let button = instance
     .getContainer()
@@ -49,8 +64,18 @@ export function initHeartButtonIcon(api: CarouselInstance) {
     return;
   }
 
+  const albumId = document
+    .querySelector("[album-id]")
+    ?.getAttribute("album-id");
+  if (!albumId) {
+    console.error("no album id");
+    return;
+  }
+
   const activeAssetId = activeSlide.assetId;
-  let hearts: string[] = JSON.parse(localStorage.getItem("hearts") ?? "[]");
+  let hearts: string[] = JSON.parse(
+    localStorage.getItem(`hearts-${albumId}`) ?? "[]",
+  );
 
   if (hearts.includes(activeAssetId) === false) {
     setButton(button, false);
@@ -66,8 +91,16 @@ export function initHeartButtonIcon(api: CarouselInstance) {
  * @returns
  */
 export function refreshHearts(setHearts?: string[]) {
+  const albumId = document
+    .querySelector("[album-id]")
+    ?.getAttribute("album-id");
+  if (!albumId) {
+    console.error("no album id");
+    return;
+  }
+
   const hearts: string[] =
-    setHearts ?? JSON.parse(localStorage.getItem("hearts") ?? "[]");
+    setHearts ?? JSON.parse(localStorage.getItem(`hearts-${albumId}`) ?? "[]");
 
   const template: HTMLTemplateElement | null =
     document.querySelector("template#heart");
