@@ -106,6 +106,7 @@ const peopleIds = Object.fromEntries(
       height={imgHeight}
       src={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=preview`}
       alt={getDescription(asset.bestItem)}
+      loading="lazy"
     />
   </span>
 
@@ -138,6 +139,7 @@ const peopleIds = Object.fromEntries(
             height={stackAssetHeight}
             src={`${IMMICH_BASE_URL}/api/assets/${stackAsset.id}/thumbnail?key=${shareKey}&size=preview`}
             alt={getDescription(stackAsset)}
+            loading="lazy"
           />
         </a>
       </div>
