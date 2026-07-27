@@ -10,9 +10,10 @@ const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
 interface Props {
   shareKey: string;
   asset: AssetStack;
+  lazy: boolean;
 }
 
-const { asset, shareKey } = Astro.props;
+const { lazy, asset, shareKey } = Astro.props;
 
 function getDescription(asset: AssetResponseDto) {
   return asset?.exifInfo?.description || asset?.originalFileName || "";
@@ -106,7 +107,7 @@ const peopleIds = Object.fromEntries(
       height={imgHeight}
       src={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=preview`}
       alt={getDescription(asset.bestItem)}
-      loading="lazy"
+      loading={lazy ? "lazy" : "eager"}
     />
   </span>
 

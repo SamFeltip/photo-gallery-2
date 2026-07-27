@@ -163,10 +163,10 @@ if (errorMessage === null) {
 
           <section class="justified-gallery" id="photoswipe">
             {displayAssets
-              .map((asset) => {
+              .map((asset, index) => {
                 return (
                   <span class="asset-wrapper">
-                    <AssetImg asset={asset} shareKey={shareKey} />
+                    <AssetImg asset={asset} shareKey={shareKey} lazy={index > 6}/>
                   </span>
                 );
               })}
