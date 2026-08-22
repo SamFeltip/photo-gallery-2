@@ -106,12 +106,15 @@ let albums = albumsResponse
           width: 100%;
         }
 
+        & div.image-wrapper {
+          border-radius: 2px;
+          overflow: hidden;
+        }
         & img {
           aspect-ratio: 4 / 3;
           height: 100%;
           width: 100%;
           object-fit: cover;
-          border-radius: 2px;
         }
       }
 
@@ -140,20 +143,18 @@ let albums = albumsResponse
             )
             .map((album) => (
               <a class="album" id={album.id} href={`/${album.id}`}>
-                <span>
-                  <LoadInTransition>
-                    <BlurhashBackground assetId={album.albumThumbnailAssetId}>
-                      <div>
-                        <Image
-                          height={300}
-                          width={400}
-                          src={`${IMMICH_BASE_URL}/api/assets/${album.albumThumbnailAssetId}/thumbnail?key=${album.sharedKey}&size=preview`}
-                          alt={album.albumName}
-                        />
-                      </div>
-                    </BlurhashBackground>
-                  </LoadInTransition>
-                </span>
+                <LoadInTransition>
+                  <BlurhashBackground assetId={album.albumThumbnailAssetId}>
+                    <div class="image-wrapper">
+                      <Image
+                        height={300}
+                        width={400}
+                        src={`${IMMICH_BASE_URL}/api/assets/${album.albumThumbnailAssetId}/thumbnail?key=${album.sharedKey}&size=preview`}
+                        alt={album.albumName}
+                      />
+                    </div>
+                  </BlurhashBackground>
+                </LoadInTransition>
                 <h2 style={{ margin: "0.5rem 0 0;" }}>{album.albumName}</h2>
               </a>
             ))
