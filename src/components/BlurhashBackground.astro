@@ -1,6 +1,5 @@
 ---
 import { getAssetInfo, type AssetResponseDto } from "@immich/sdk";
-import type { AssetStack } from "../types/assets";
 import { thumbHashToDataURL } from "thumbhash";
 
 type Props =
@@ -43,6 +42,8 @@ const placeholder = asset.thumbhash ? toDataUrl(asset.thumbhash) : null;
     background-image: var(--placeholder-url);
     background-size: cover;
     background-repeat: no-repeat;
+
+    overflow: hidden;
   }
 </style>
 
