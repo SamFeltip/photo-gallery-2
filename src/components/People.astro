@@ -2,7 +2,7 @@
 import { init, type AlbumResponseDto } from "@immich/sdk";
 import { getAlbumPeople } from "../lib/immichHelpers";
 import type { AssetStack } from "../types/assets";
-import LoadInImg from "../components/LoadInImg.astro";
+import LoadInTransition from "./LoadInTransition.astro";
 import { Image } from "astro:assets";
 
 interface Props {
@@ -39,7 +39,7 @@ const people = Array.from(albumPeople.entries()).filter(
       .map(([personId, person]) => (
         <li>
           <span class="avatar-wrap" data-person={personId}>
-            <LoadInImg>
+            <LoadInTransition>
               <Image
                 class="avatar"
                 height=100
@@ -47,7 +47,7 @@ const people = Array.from(albumPeople.entries()).filter(
                 src={`${IMMICH_BASE_URL}/api/people/${personId}/thumbnail?apiKey=${PERSON_API_KEY}`}
                 alt={person.name}
               />
-            </LoadInImg>
+            </LoadInTransition>
             <svg class="reveal-ring" viewBox="0 0 100 100" aria-hidden="true">
               <circle cx="50" cy="50" r="48" />
             </svg>

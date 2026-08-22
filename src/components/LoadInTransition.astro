@@ -14,7 +14,7 @@
   document
     .querySelectorAll<HTMLImageElement>("span.loadIn img")
     .forEach((htmlImg) => {
-      console.log("LoadInImg: checking image", htmlImg.src);
+      console.log("LoadInTransition: checking image", htmlImg.src);
       if (htmlImg.complete && htmlImg.naturalWidth > 0) {
         // already loaded from cache — no fade needed, just show it
         markLoaded(htmlImg);

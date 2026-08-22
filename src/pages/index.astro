@@ -4,7 +4,7 @@ import { Font } from "astro:assets";
 
 import "../styles/reset.css";
 import "../styles/styles.css";
-import LoadInImg from "../components/LoadInImg.astro";
+import LoadInTransition from "../components/LoadInTransition.astro";
 import {
   getAllAlbums,
   init,
@@ -140,14 +140,14 @@ let albums = albumsResponse
             .map((album) => (
               <a class="album" id={album.id} href={`/${album.id}`}>
                 <span>
-                  <LoadInImg>
+                  <LoadInTransition>
                     <Image
                       height={300}
                       width={400}
                       src={`${IMMICH_BASE_URL}/api/assets/${album.albumThumbnailAssetId}/thumbnail?key=${album.sharedKey}&size=preview`}
                       alt={album.albumName}
                     />
-                  </LoadInImg>
+                  </LoadInTransition>
                 </span>
                 <h2 style={{ margin: "0.5rem 0 0;" }}>{album.albumName}</h2>
               </a>

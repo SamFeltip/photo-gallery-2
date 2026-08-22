@@ -8,7 +8,7 @@ import { init,getAlbumInfo, type AlbumResponseDto, getAllAlbums} from "@immich/s
 import AssetImg from "../components/AssetImg.astro"
 import Gallery from "../components/Gallery.astro";
 import GalleryFilter from "../components/GalleryFilter.astro";
-import LoadInImg from "../components/LoadInImg.astro";
+import LoadInTransition from "../components/LoadInTransition.astro";
 
 import type { AssetStack } from "../types/assets";
 import { Icon } from "astro-icon/components";
@@ -109,9 +109,9 @@ if (errorMessage === null) {
                   .map((asset, index) => {
                     return (
                       <span style={{display: "contents"}}>
-                        <LoadInImg>
+                        <LoadInTransition>
                           <AssetImg asset={asset} shareKey={shareKey} lazy={index > 6}/>
-                        </LoadInImg>
+                        </LoadInTransition>
                       </span>
                     );
                   })}
