@@ -85,12 +85,10 @@ if (errorMessage === null) {
 
       .justified-gallery {
         --scale-factor: 1.01;
-        --space: clamp(12px, 1.25vw, 6px);
-        --min-height: clamp(200px, 20vw, 400px);
 
         display: flex;
         flex-wrap: wrap;
-        gap: var(--space);
+        gap: clamp(12px, 1.25vw, 6px);
 
         padding-bottom: 3rem;
 
@@ -98,17 +96,9 @@ if (errorMessage === null) {
           display: contents;
         }
 
-        .thumbhash-img {
-          --border-radius: 2px;
-          border-radius: var(--border-radius);
-          overflow: hidden;
-
-          &:hover,&:focus-visible {
-            border-radius: calc(var(--border-radius) * var(--scale-factor))
-          }
-        }
-
         a {
+          --min-height: clamp(200px, 20vw, 400px);
+          
           flex-grow: calc(var(--width) * (100000 / var(--height)));
           flex-basis: calc(var(--min-height) * (var(--width) / var(--height)));
           aspect-ratio: var(--width) / var(--height);

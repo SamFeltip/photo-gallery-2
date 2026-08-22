@@ -50,6 +50,22 @@ const peopleIds = Object.fromEntries(
 );
 ---
 
+<style>
+  .thumbhash-img {
+    background-image: var(--placeholder-url);
+    background-size: cover;
+    background-repeat: no-repeat;
+
+    --border-radius: 2px;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+
+    &:hover,
+    &:focus-visible {
+      border-radius: calc(var(--border-radius) * var(--scale-factor));
+    }
+  }
+</style>
 <a
   style={`--width: ${imgWidth}; --height: ${imgHeight}; --placeholder-url: url(${placeholder});`}
   href={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=fullsize`}
