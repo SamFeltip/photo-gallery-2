@@ -4,8 +4,13 @@ import { Font } from "astro:assets";
 
 import "../styles/reset.css";
 import "../styles/styles.css";
-
-import { getAllAlbums, init, getAllSharedLinks } from "@immich/sdk";
+import LoadInImg from "../components/LoadInImg.astro";
+import {
+  getAllAlbums,
+  init,
+  getAllSharedLinks,
+  type AlbumResponseDto,
+} from "@immich/sdk";
 
 const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
 const API_KEY = import.meta.env.API_KEY;
@@ -35,9 +40,19 @@ let albums = albumsResponse
     const sharedLink = sharedAlbums.find((link) => link.album?.id === album.id);
     return {
       ...album,
-      sharedKey: sharedLink?.key ?? null,
+      sharedKey: sharedLink?.key,
     };
-  });
+  })
+  .filter(
+    (
+      album,
+    ): album is AlbumResponseDto & {
+      albumThumbnailAssetId: string;
+      sharedKey: string;
+    } =>
+      album.sharedKey !== undefined &&
+      album.albumThumbnailAssetId !== undefined,
+  );
 ---
 
 <html lang="en">
@@ -125,13 +140,14 @@ let albums = albumsResponse
             .map((album) => (
               <a class="album" id={album.id} href={`/${album.id}`}>
                 <span>
-                  <Image
-                    class="loadIn"
-                    height={300}
-                    width={400}
-                    src={`${IMMICH_BASE_URL}/api/assets/${album.albumThumbnailAssetId}/thumbnail?key=${album.sharedKey}&size=preview`}
-                    alt={album.albumName}
-                  />
+                  <LoadInImg>
+                    <Image
+                      height={300}
+                      width={400}
+                      src={`${IMMICH_BASE_URL}/api/assets/${album.albumThumbnailAssetId}/thumbnail?key=${album.sharedKey}&size=preview`}
+                      alt={album.albumName}
+                    />
+                  </LoadInImg>
                 </span>
                 <h2 style={{ margin: "0.5rem 0 0;" }}>{album.albumName}</h2>
               </a>
@@ -139,23 +155,5 @@ let albums = albumsResponse
         }
       </section>
     </main>
-
-    <script>
-      function markLoaded(img: HTMLImageElement) {
-        img.classList.add("loaded");
-      }
-
-      document.querySelectorAll("img.loadIn").forEach((img: Element) => {
-        const htmlImg = img as HTMLImageElement;
-        if (htmlImg.complete && htmlImg.naturalWidth > 0) {
-          // already loaded from cache — no fade needed, just show it
-          markLoaded(htmlImg);
-        } else {
-          htmlImg.addEventListener("load", () => markLoaded(htmlImg), {
-            once: true,
-          });
-        }
-      });
-    </script>
   </body>
 </html>
