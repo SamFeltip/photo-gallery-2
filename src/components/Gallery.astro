@@ -1,0 +1,64 @@
+---
+// this gallery component is a wrapper for the photoswipe functionality
+---
+
+<style>
+  .justified-gallery {
+    --scale-factor: 1.01;
+
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(12px, 1.25vw, 6px);
+
+    padding-bottom: 3rem;
+
+    &::after {
+      content: " ";
+      flex-grow: 1000000000;
+    }
+  }
+</style>
+<section class="justified-gallery">
+  <slot />
+</section>
+<script>
+  import {
+    clickHeartButton,
+    initHeartButtonIcon,
+    refreshHearts,
+  } from "../lib/fancyboxHeartButtonHelpers";
+  import { Fancybox } from "@fancyapps/ui/dist/fancybox/";
+
+  document.addEventListener("DOMContentLoaded", () => refreshHearts());
+
+  Fancybox.bind("[data-fancybox]", {
+    theme: "auto",
+    mainStyle: {
+      "--f-button-width": "44px",
+      "--f-button-height": "44px",
+      "--f-button-border-radius": "50%",
+      "--f-toolbar-padding": "16px",
+    },
+    Carousel: {
+      Arrows: false,
+      Toolbar: {
+        items: {
+          heart: {
+            tpl: `<button class="f-button heart-carosel"></button>`,
+            click: clickHeartButton,
+          },
+        },
+        display: {
+          left: [],
+          middle: [],
+          right: ["download", "heart", "close"],
+        },
+      },
+      transition: "slide",
+      on: {
+        contentLoading: initHeartButtonIcon,
+        change: initHeartButtonIcon,
+      },
+    },
+  });
+</script>

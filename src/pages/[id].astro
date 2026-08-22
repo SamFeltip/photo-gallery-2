@@ -82,54 +82,6 @@ if (errorMessage === null) {
         --padding: max(2.5vw, 12px);
         padding: var(--padding);
       }
-
-      .justified-gallery {
-        --scale-factor: 1.01;
-
-        display: flex;
-        flex-wrap: wrap;
-        gap: clamp(12px, 1.25vw, 6px);
-
-        padding-bottom: 3rem;
-
-        .asset-wrapper {
-          display: contents;
-        }
-
-        a {
-          --min-height: clamp(200px, 20vw, 400px);
-          
-          flex-grow: calc(var(--width) * (100000 / var(--height)));
-          flex-basis: calc(var(--min-height) * (var(--width) / var(--height)));
-          aspect-ratio: var(--width) / var(--height);
-          overflow: hidden;
-          opacity: 1;
-          transition: all 0.05s ease-in-out;
-          
-          img {
-            display: block;
-            object-fit: cover;
-            height: 100%;
-            width: 100%;
-          }
-
-          &:hover,&:focus-visible {
-            outline: 3px solid var(--outline);
-            outline-offset: 2px;
-            scale: var(--scale-factor);
-            z-index: 1;
-          }
-
-          &.hidden {
-            transition: opacity 0.4s ease-in-out;
-            opacity: 0;
-          }
-        }
-        &::after {
-          content: " ";
-          flex-grow: 1000000000;
-        }
-      }
     </style>
   </head>
   <body>
@@ -151,60 +103,22 @@ if (errorMessage === null) {
 
           <People album={album} displayAssets={displayAssets}/>
 
-          <section class="justified-gallery" id="photoswipe">
-            {displayAssets
-              .map((asset, index) => {
-                return (
-                  <span class="asset-wrapper">
-                    <AssetImg asset={asset} shareKey={shareKey} lazy={index > 6}/>
-                  </span>
-                );
-              })}
-          </section>
+          <div id="photoswipe">
+            <Gallery>
+              {displayAssets
+                .map((asset, index) => {
+                  return (
+                    <span style={{display: "contents"}}>
+                      <AssetImg asset={asset} shareKey={shareKey} lazy={index > 6}/>
+                    </span>
+                  );
+                })}
+            </Gallery>
+          </div>
         )
       }
     </main>
 
-    <script>
-
-      import {clickHeartButton, initHeartButtonIcon, refreshHearts } from "../lib/fancyboxHeartButtonHelpers";
-      import { Fancybox } from "@fancyapps/ui/dist/fancybox/";
-      
-      document.addEventListener("DOMContentLoaded", () => refreshHearts());
-
-      Fancybox.bind("[data-fancybox]", {
-        theme: "auto",
-        mainStyle: {
-          "--f-button-width": "44px",
-          "--f-button-height": "44px",
-          "--f-button-border-radius": "50%",
-          "--f-toolbar-padding": "16px",
-        },
-        Carousel: {
-          Arrows: false,
-          Toolbar: {
-            items: {
-              heart: {
-                tpl: `<button class="f-button heart-carosel"></button>`,
-                click: clickHeartButton,
-              }
-            },
-            display: {
-              left: [],
-              middle: [],
-              right: ["download", "heart", "close"],
-            },
-          },
-          transition: "slide",
-          on: {
-            "contentLoading": initHeartButtonIcon,
-            "change": initHeartButtonIcon
-          }
-        },
-      });
-
-      
-    </script>
     <script>
       function markLoaded(img: HTMLImageElement) {
         img.classList.add("loaded");
@@ -258,7 +172,7 @@ if (errorMessage === null) {
         const personImages = document.querySelectorAll(queryString);
         personImages.forEach(anchor => anchor.classList.add("show"));
 
-        const photoList = document.querySelector(`section#photoswipe`);
+        const photoList = document.querySelector(`#photoswipe`);
         if(filteredPeople.size === 0){
           photoList?.classList.remove("filtered");
         }else{
@@ -266,8 +180,8 @@ if (errorMessage === null) {
         }
       })
     </script>
-    <style is:global>
-      #photoswipe.filtered a:not(.show) {
+    <style>
+      #photoswipe.filtered :global(a:not(.show)) {
         display: none;
       }
     </style>
