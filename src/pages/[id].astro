@@ -9,6 +9,7 @@ import AssetImg from "../components/AssetImg.astro"
 import Gallery from "../components/Gallery.astro";
 import GalleryFilter from "../components/GalleryFilter.astro";
 import LoadInTransition from "../components/LoadInTransition.astro";
+import BlurhashBackground from "../components/BlurhashBackground.astro";
 
 import type { AssetStack } from "../types/assets";
 import { Icon } from "astro-icon/components";
@@ -79,6 +80,17 @@ if (errorMessage === null) {
     <Font cssVariable="--font-unbounded" />
     <Font cssVariable="--font-overpass" />
 
+    <!-- <style is:global>
+      .thumbhash-background {
+        display: contents;
+      }
+
+      .thumbhash-background > :first-child {
+        background-image: var(--placeholder-url);
+        background-size: cover;
+        background-repeat: no-repeat;
+      }
+    </style> -->
     <style>
       main {
         --padding: max(2.5vw, 12px);
@@ -96,6 +108,7 @@ if (errorMessage === null) {
     <template id="heart-button-filled">
       <Icon name="iconamoon:heart-fill" />
     </template>
+
     <main album-id={id}>
       {
         errorMessage || album === undefined ? (
@@ -110,7 +123,9 @@ if (errorMessage === null) {
                     return (
                       <span style={{display: "contents"}}>
                         <LoadInTransition>
-                          <AssetImg asset={asset} shareKey={shareKey} lazy={index > 6}/>
+                          <BlurhashBackground asset={asset.bestItem}>
+                            <AssetImg asset={asset} shareKey={shareKey} lazy={index > 6}/>
+                          </BlurhashBackground>
                         </LoadInTransition>
                       </span>
                     );

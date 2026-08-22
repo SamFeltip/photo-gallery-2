@@ -2,7 +2,6 @@
 import type { AssetStack } from "../types/assets";
 import { Image } from "astro:assets";
 import { type AssetResponseDto } from "@immich/sdk";
-import { thumbHashToDataURL } from "thumbhash";
 import { Icon } from "astro-icon/components";
 
 const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
@@ -32,18 +31,6 @@ const imgHeight = orientation === "portrait" ? width : height;
 const imgWidth = orientation === "portrait" ? height : width;
 
 // helper: base64 string -> Uint8Array (Node has atob globally in Astro's runtime)
-function toDataUrl(base64Hash: string) {
-  const binary = atob(base64Hash);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return thumbHashToDataURL(bytes);
-}
-
-const placeholder = asset.bestItem.thumbhash
-  ? toDataUrl(asset.bestItem.thumbhash)
-  : null;
 
 const peopleIds = Object.fromEntries(
   asset.bestItem.people?.map((person) => ["data-person", person.id]) ?? [],
@@ -52,10 +39,6 @@ const peopleIds = Object.fromEntries(
 
 <style>
   a.thumbhash-img {
-    background-image: var(--placeholder-url);
-    background-size: cover;
-    background-repeat: no-repeat;
-
     --border-radius: 2px;
     border-radius: var(--border-radius);
     overflow: hidden;
@@ -94,7 +77,10 @@ const peopleIds = Object.fromEntries(
   }
 </style>
 <a
-  style={`--width: ${imgWidth}; --height: ${imgHeight}; --placeholder-url: url(${placeholder});`}
+  style={`
+  --width: ${imgWidth}; 
+  --height: ${imgHeight};
+  `}
   href={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=fullsize`}
   data-download-src={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=preview`}
   data-asset-id={asset.bestItem.id}
@@ -103,8 +89,8 @@ const peopleIds = Object.fromEntries(
   class="thumbhash-img"
   {...peopleIds}
 >
-  <span style={{ position: "relative" }}>
-    <span
+  <div style={{ position: "relative" }}>
+    <div
       style={{
         color: "white",
         position: "absolute",
@@ -114,10 +100,10 @@ const peopleIds = Object.fromEntries(
       }}
       class="heart-wrapper"
     >
-    </span>
+    </div>
     {
       asset.stackItems !== undefined && (
-        <span
+        <div
           style={{
             display: "flex",
             alignItems: "center",
@@ -140,19 +126,18 @@ const peopleIds = Object.fromEntries(
             {asset.stackItems?.length + 1}
           </p>
           <Icon name="mdi:image-multiple" />
-        </span>
+        </div>
       )
     }
     <Image
       id={asset.bestItem.id}
-      class="loadIn"
       width={imgWidth}
       height={imgHeight}
       src={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=preview`}
       alt={getDescription(asset.bestItem)}
       loading={lazy ? "lazy" : "eager"}
     />
-  </span>
+  </div>
 
   {
     asset.bestItem.people?.map((person) => (

@@ -1,0 +1,54 @@
+---
+import { getAssetInfo, type AssetResponseDto } from "@immich/sdk";
+import type { AssetStack } from "../types/assets";
+import { thumbHashToDataURL } from "thumbhash";
+
+type Props =
+  | {
+      asset: AssetResponseDto;
+    }
+  | {
+      assetId: string;
+    };
+
+let asset: AssetResponseDto;
+
+if ("asset" in Astro.props) {
+  asset = Astro.props.asset;
+} else {
+  const assetId = Astro.props.assetId;
+
+  const assetResponse = await getAssetInfo({ id: assetId });
+  asset = assetResponse;
+}
+
+function toDataUrl(base64Hash: string) {
+  const binary = atob(base64Hash);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return thumbHashToDataURL(bytes);
+}
+
+const placeholder = asset.thumbhash ? toDataUrl(asset.thumbhash) : null;
+---
+
+<style>
+  .thumbhash-background {
+    display: contents;
+  }
+
+  .thumbhash-background > :global(:first-child) {
+    background-image: var(--placeholder-url);
+    background-size: cover;
+    background-repeat: no-repeat;
+  }
+</style>
+
+<span
+  class="thumbhash-background"
+  style={`--placeholder-url: url(${placeholder});`}
+>
+  <slot />
+</span>
