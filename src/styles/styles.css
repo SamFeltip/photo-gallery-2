@@ -1,29 +1,10 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html,
-body {
-  height: 100%;
-}
-img {
-  display: block;
-  max-width: 100%;
-}
-ul {
-  list-style: none;
-}
-
-h1 {
+h1,h2,h3,h4,h5,h6 {
   font-family: var(--font-unbounded);
-    a {
-      text-decoration: none; /* no underline */
-      color: inherit; /* inherit color from parent */
-    }
+}
+
+h2 {
+  font-size: 1.5rem;
+  align-self: start;
 }
 
 img.loadIn {

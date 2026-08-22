@@ -1,6 +1,8 @@
 ---
 import { Image } from "astro:assets";
 import { Font } from "astro:assets";
+
+import "../styles/reset.css";
 import "../styles/styles.css";
 
 import { getAllAlbums, init, getAllSharedLinks } from "@immich/sdk";
@@ -95,13 +97,6 @@ let albums = albumsResponse
           object-fit: cover;
           border-radius: 2px;
         }
-
-        h2 {
-          font-family: var(--font-unbounded);
-          margin: 0.5rem 0 0;
-          font-size: 1.5rem;
-          align-self: start;
-        }
       }
 
       @media screen and (min-width: 400px) {
@@ -138,7 +133,7 @@ let albums = albumsResponse
                     alt={album.albumName}
                   />
                 </span>
-                <h2>{album.albumName}</h2>
+                <h2 style={{ margin: "0.5rem 0 0;" }}>{album.albumName}</h2>
               </a>
             ))
         }
