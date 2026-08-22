@@ -1,0 +1,66 @@
+---
+import type { AlbumResponseDto } from "@immich/sdk";
+import People from "../components/People.astro";
+import type { AssetStack } from "../types/assets";
+
+interface Props {
+  album: AlbumResponseDto;
+  displayAssets: AssetStack[];
+}
+
+const { album, displayAssets } = Astro.props;
+---
+
+<div id="gallery-filter">
+  <People album={album} displayAssets={displayAssets} />
+
+  <div id="photoswipe">
+    <slot />
+  </div>
+</div>
+
+<script>
+  const galleryFilter =
+    document.querySelector<HTMLDivElement>("div#gallery-filter");
+
+  const filteredPeople = new Set();
+
+  galleryFilter?.addEventListener("person", (e) => {
+    console.debug("caught person event");
+
+    if (!e.detail) {
+      throw new Error("no details were added to person event.");
+    }
+
+    const { personId, toggleMode } = e.detail;
+
+    if (toggleMode == "active") {
+      filteredPeople.add(personId);
+    } else {
+      filteredPeople.delete(personId);
+    }
+
+    const allPersonImages = document.querySelectorAll(`a.thumbhash-img`);
+    allPersonImages.forEach((anchor) => anchor.classList.remove("show"));
+
+    let queryString = "a.thumbhash-img";
+    Array.from(filteredPeople).forEach((personIdFilter) => {
+      queryString += `:has(span[data-person='${personIdFilter}'])`;
+    });
+
+    const personImages = document.querySelectorAll(queryString);
+    personImages.forEach((anchor) => anchor.classList.add("show"));
+
+    const photoList = document.querySelector(`#photoswipe`);
+    if (filteredPeople.size === 0) {
+      photoList?.classList.remove("filtered");
+    } else {
+      photoList?.classList.add("filtered");
+    }
+  });
+</script>
+<style>
+  #photoswipe.filtered :global(a:not(.show)) {
+    display: none;
+  }
+</style>

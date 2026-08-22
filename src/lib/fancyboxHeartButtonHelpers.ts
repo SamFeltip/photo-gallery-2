@@ -41,15 +41,12 @@ export function clickHeartButton(instance: CarouselInstance) {
 }
 
 export function initHeartButtonIcon(api: CarouselInstance) {
-  console.debug("init!");
-  console.debug({ page: api.getPageIndex() });
-
   let button = api
     .getContainer()
     ?.querySelector("button.heart-carosel") as HTMLButtonElement;
 
   if (!button) {
-    console.debug("thing not found", { button });
+    console.error("button not found", { button });
     return;
   }
 

@@ -5,8 +5,9 @@ import "../styles/styles.css";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 
 import { init,getAlbumInfo, type AlbumResponseDto, getAllAlbums} from "@immich/sdk";
-import People from "../components/People.astro";
 import AssetImg from "../components/AssetImg.astro"
+import Gallery from "../components/Gallery.astro";
+import GalleryFilter from "../components/GalleryFilter.astro";
 
 import type { AssetStack } from "../types/assets";
 import { Icon } from "astro-icon/components";
@@ -101,20 +102,18 @@ if (errorMessage === null) {
         ) : (
           <h1><a href="/">{album.albumName}</a></h1>
 
-          <People album={album} displayAssets={displayAssets}/>
-
-          <div id="photoswipe">
-            <Gallery>
-              {displayAssets
-                .map((asset, index) => {
-                  return (
-                    <span style={{display: "contents"}}>
-                      <AssetImg asset={asset} shareKey={shareKey} lazy={index > 6}/>
-                    </span>
-                  );
-                })}
-            </Gallery>
-          </div>
+          <GalleryFilter album={album} displayAssets={displayAssets}>
+              <Gallery>
+                {displayAssets
+                  .map((asset, index) => {
+                    return (
+                      <span style={{display: "contents"}}>
+                        <AssetImg asset={asset} shareKey={shareKey} lazy={index > 6}/>
+                      </span>
+                    );
+                  })}
+              </Gallery>
+          </GalleryFilter>
         )
       }
     </main>
@@ -138,52 +137,5 @@ if (errorMessage === null) {
           }
         });
     </script>
-    <script>
-      import { type PersonEventDetails } from "../types/events";
-
-      const main = document.querySelector("main");
-
-      const filteredPeople = new Set();
-
-      main?.addEventListener("person", (e:CustomEventInit<PersonEventDetails>) => {
-        console.debug("caught person event");
-
-        if(!e.detail){
-          throw new Error("no details were added to person event.");
-        }
-
-        const {personId, status} = e.detail;
-
-        if(status == "active"){
-          filteredPeople.add(personId);
-        }else{
-          filteredPeople.delete(personId);
-        }
-        
-        const allPersonImages = document.querySelectorAll(`a.thumbhash-img`);
-        allPersonImages.forEach(anchor => anchor.classList.remove("show"));
-
-        let queryString = "a.thumbhash-img";
-        Array.from(filteredPeople).forEach(personIdFilter => {
-          queryString += `:has(span[data-person='${personIdFilter}'])`
-        });
-
-        console.debug("person images being queried");
-        const personImages = document.querySelectorAll(queryString);
-        personImages.forEach(anchor => anchor.classList.add("show"));
-
-        const photoList = document.querySelector(`#photoswipe`);
-        if(filteredPeople.size === 0){
-          photoList?.classList.remove("filtered");
-        }else{
-          photoList?.classList.add("filtered");
-        }
-      })
-    </script>
-    <style>
-      #photoswipe.filtered :global(a:not(.show)) {
-        display: none;
-      }
-    </style>
   </body>
 </html>
