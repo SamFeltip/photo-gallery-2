@@ -1,4 +1,5 @@
 import {
+  AssetTypeEnum,
   searchAssets,
   searchStacks,
   type AssetResponseDto,
@@ -39,8 +40,12 @@ export async function getDisplayAssets(id: string): Promise<AssetStack[]> {
     })
   ).assets.items;
 
+  const rawPhotos = Array.from(rawAssets).filter(
+    (asset) => asset.type === AssetTypeEnum.Image,
+  );
+
   const dedupedAssets = Array.from(
-    new Map(rawAssets.map((asset) => [asset.id, asset])).values(),
+    new Map(rawPhotos.map((asset) => [asset.id, asset])).values(),
   );
 
   // One extra request to resolve stack membership for all assets at once.
