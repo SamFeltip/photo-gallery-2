@@ -121,7 +121,7 @@ if (errorMessage === null) {
                 {displayAssets
                   .map((asset, index) => {
                     return (
-                      <span style={{display: "contents"}}>
+                      <span class="asset-wrapper" style={{display: "contents"}}>
                         <LoadInTransition>
                           <BlurhashBackground asset={asset.bestItem}>
                             <AssetImg asset={asset} shareKey={shareKey} lazy={index > 6}/>

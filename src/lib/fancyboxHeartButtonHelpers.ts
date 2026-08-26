@@ -29,7 +29,7 @@ export function clickHeartButton(instance: CarouselInstance) {
   }
   localStorage.setItem(`hearts-${albumId}`, JSON.stringify(hearts));
 
-  console.debug({ assetId });
+  console.debug("clicked heart for asset", { assetId });
 
   refreshHearts(hearts);
 
@@ -99,33 +99,46 @@ export function refreshHearts(setHearts?: string[]) {
   const hearts: string[] =
     setHearts ?? JSON.parse(localStorage.getItem(`hearts-${albumId}`) ?? "[]");
 
-  const template: HTMLTemplateElement | null =
-    document.querySelector("template#heart");
+  const template =
+    document.querySelector<HTMLTemplateElement>("template#heart");
 
   if (!template) {
     console.error("no heart template");
     return;
   }
 
+  const heartWrappers = document.querySelectorAll(
+    ".justified-gallery div.heart-wrapper",
+  );
+  if (!heartWrappers) {
+    console.error("no heart wrappers");
+    return;
+  }
+
   // remove all hearts
-  document
-    .querySelectorAll(".justified-gallery span.heart-wrapper")
-    .forEach((elem) => {
-      console.debug("resetting");
-      elem.textContent = "";
-    });
+  heartWrappers.forEach((elem) => {
+    console.debug("resetting");
+    elem.textContent = "";
+  });
 
   // populate valid hearts
   hearts.forEach((assetId) => {
-    const albumWrapper = document
-      .querySelector(`span.asset-wrapper a[data-asset-id="${assetId}"]`)
-      ?.closest("span.asset-wrapper");
+    const albumWrapper =
+      document
+        .querySelector(`span.asset-wrapper a[data-asset-id="${assetId}"]`)
+        ?.closest<HTMLSpanElement>("span.asset-wrapper") ?? null;
 
-    if (!albumWrapper) return;
+    if (!albumWrapper) {
+      console.error("no album wrapper for assetId", { assetId });
+      return;
+    }
 
-    const heartWrapper = albumWrapper.querySelector(".heart-wrapper");
+    const heartWrapper = albumWrapper.querySelector("div.heart-wrapper");
 
-    if (!heartWrapper) return;
+    if (!heartWrapper) {
+      console.error("no heart wrapper for assetId", { assetId });
+      return;
+    }
 
     heartWrapper.replaceChildren(template.content.cloneNode(true));
   });
