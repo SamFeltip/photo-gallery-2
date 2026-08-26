@@ -1,6 +1,7 @@
 ---
 // this gallery component is a wrapper for the photoswipe functionality
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
+import { FancyboxDrawer } from "./FancyboxDrawer";
 ---
 
 <style>
@@ -23,6 +24,7 @@ import "@fancyapps/ui/dist/fancybox/fancybox.css";
   <!-- should contain [data-fancybox] elements -->
   <slot />
 </section>
+<FancyboxDrawer client:load />
 <script>
   import {
     clickHeartButton,
@@ -31,9 +33,24 @@ import "@fancyapps/ui/dist/fancybox/fancybox.css";
   } from "../lib/fancyboxHeartButtonHelpers";
   import { Fancybox } from "@fancyapps/ui/dist/fancybox/";
 
+  function openDrawer() {
+    (document.activeElement as HTMLElement | null)?.blur();
+    window.dispatchEvent(new Event("open-fancybox-drawer"));
+  }
+
+  function closeDrawer() {
+    window.dispatchEvent(new Event("close-fancybox-drawer"));
+  }
+
   document.addEventListener("DOMContentLoaded", () => refreshHearts());
 
   Fancybox.bind("[data-fancybox]", {
+    // Vaul is the only modal layer. This keeps Fancybox below its portal and
+    // prevents two modal focus traps from fighting each other.
+    modal: false,
+    keyboard: {
+      Escape: false,
+    },
     theme: "auto",
     mainStyle: {
       "--f-button-width": "44px",
@@ -49,11 +66,17 @@ import "@fancyapps/ui/dist/fancybox/fancybox.css";
             tpl: `<button class="f-button heart-carosel"></button>`,
             click: clickHeartButton,
           },
+          drawer: {
+            tpl: `<button class="f-button" type="button" title="Open drawer" aria-label="Open drawer">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h14M5 15h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>`,
+            click: openDrawer,
+          },
         },
         display: {
           left: [],
           middle: [],
-          right: ["download", "heart", "close"],
+          right: ["download", "heart", "drawer", "close"],
         },
       },
       transition: "slide",
@@ -61,6 +84,9 @@ import "@fancyapps/ui/dist/fancybox/fancybox.css";
         contentLoading: initHeartButtonIcon,
         change: initHeartButtonIcon,
       },
+    },
+    on: {
+      destroy: closeDrawer,
     },
   });
 </script>
