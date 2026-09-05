@@ -1,33 +1,15 @@
-const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
-const API_KEY = import.meta.env.API_KEY;
+import { getAllSharedLinks } from "@immich/sdk";
 
 export async function getShareKey(id: string) {
-  let links = null;
-
   if (!id) {
     throw new Error("No album id provided in route.");
   }
 
-  const res = await fetch(`${IMMICH_BASE_URL}/api/shared-links`, {
-    headers: {
-      "x-api-key": API_KEY,
-      Accept: "application/json",
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch album (${res.status} ${res.statusText})`);
-  } else {
-    links = await res.json();
-  }
-
-  if (!Array.isArray(links)) {
-    throw new Error("Unexpected response shape for shared links.");
-  }
+  const links = await getAllSharedLinks({ albumId: id });
 
   const link = links.find(
     (link) =>
-      link.album.id === id &&
+      link.album?.id === id &&
       (link.expiresAt == null || new Date(link.expiresAt) > new Date()),
   );
 

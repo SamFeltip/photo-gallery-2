@@ -37,6 +37,7 @@ const { albumId } = Astro.props;
     initHeartButtonIcon,
     refreshHearts,
   } from "../lib/fancyboxHeartButtonHelpers";
+  import { actions } from "astro:actions";
   import { Fancybox } from "@fancyapps/ui/dist/fancybox/";
 
   function getCurrentAssetId(instance: CarouselInstance) {
@@ -75,13 +76,12 @@ const { albumId } = Astro.props;
     }
 
     try {
-      const response = await fetch(
-        `/api/albums/${encodeURIComponent(albumId)}/assets/${encodeURIComponent(assetId)}/activities`,
-      );
-      if (!response.ok) return;
-      const { statistics } = (await response.json()) as {
-        statistics: { comments: number };
-      };
+      const { data, error } = await actions.getPhotoActivities({
+        albumId,
+        assetId,
+      });
+      if (error) return;
+      const { statistics } = data;
       button.textContent = `Comments (${statistics.comments})`;
     } catch {
       button.textContent = "Comments";
