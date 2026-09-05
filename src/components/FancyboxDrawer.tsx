@@ -1,40 +1,37 @@
 import { useEffect, useState } from "react";
+import { actions } from "astro:actions";
+import type { ActivityResponseDto } from "@immich/sdk";
 import { Drawer } from "vaul";
 
 type Actor = { id: string; name: string; personId?: string };
-type Activity = {
-  id: string;
-  type: "like" | "comment";
-  comment?: string | null;
-  createdAt: string;
-  user: { id: string; name: string };
-};
 type OpenDetail = { assetId: string; action?: "like" | "comment" };
 
 export function FancyboxDrawer({ albumId }: { albumId: string }) {
   const [assetId, setAssetId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [activities, setActivities] = useState<Activity[]>([]);
+  const [activities, setActivities] = useState<ActivityResponseDto[]>([]);
   const [actors, setActors] = useState<Actor[]>([]);
   const [actorId, setActorId] = useState<string | null>(null);
   const [selectingIdentity, setSelectingIdentity] = useState(false);
   const [pendingAction, setPendingAction] = useState<"like" | "comment" | null>(null);
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const activityUrl = assetId ? `/api/albums/${encodeURIComponent(albumId)}/assets/${encodeURIComponent(assetId)}/activities` : null;
 
   async function loadActivities() {
-    if (!activityUrl) return;
-    const response = await fetch(activityUrl);
-    if (!response.ok) throw new Error("Could not load the conversation");
-    setActivities(((await response.json()) as { activities: Activity[] }).activities);
+    if (!assetId) return;
+    const { data, error: actionError } = await actions.getPhotoActivities({
+      albumId,
+      assetId,
+    });
+    if (actionError) throw new Error(actionError.message);
+    setActivities(data.activities);
   }
 
   async function loadActors() {
     if (actors.length) return;
-    const response = await fetch(`/api/albums/${encodeURIComponent(albumId)}/actors`);
-    if (!response.ok) throw new Error("Could not load people");
-    setActors((await response.json()) as Actor[]);
+    const { data, error: actionError } = await actions.getAlbumActors({ albumId });
+    if (actionError) throw new Error(actionError.message);
+    setActors(data);
   }
 
   useEffect(() => {
@@ -58,13 +55,11 @@ export function FancyboxDrawer({ albumId }: { albumId: string }) {
 
   useEffect(() => {
     if (!open || !assetId) return;
-    const stream = new EventSource(`${activityUrl}/stream`);
-    stream.onmessage = (event) => {
-      const data = JSON.parse(event.data) as { activities: Activity[] };
-      setActivities(data.activities);
-    };
-    stream.onerror = () => void loadActivities().catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Could not load activities"));
-    return () => stream.close();
+    void loadActivities().catch((cause: unknown) =>
+      setError(
+        cause instanceof Error ? cause.message : "Could not load activities",
+      ),
+    );
   }, [open, assetId]);
 
   useEffect(() => {
@@ -78,7 +73,7 @@ export function FancyboxDrawer({ albumId }: { albumId: string }) {
   }, [open, assetId, actorId, pendingAction, selectingIdentity]);
 
   async function createActivity(type: "like" | "comment", selectedActorId = actorId) {
-    if (!activityUrl || !selectedActorId) {
+    if (!assetId || !selectedActorId) {
       setPendingAction(type);
       setSelectingIdentity(true);
       return;
@@ -86,12 +81,14 @@ export function FancyboxDrawer({ albumId }: { albumId: string }) {
     const trimmedComment = comment.trim();
     if (type === "comment" && !trimmedComment) return;
     setError(null);
-    const response = await fetch(activityUrl, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ actorId: selectedActorId, type, ...(type === "comment" ? { comment: trimmedComment } : {}) }),
+    const { error: actionError } = await actions.createPhotoActivity({
+      actorId: selectedActorId,
+      albumId,
+      assetId,
+      type,
+      ...(type === "comment" ? { comment: trimmedComment } : {}),
     });
-    if (!response.ok) return setError("Could not save your activity");
+    if (actionError) return setError(actionError.message);
     setComment("");
     setPendingAction(null);
     await loadActivities();

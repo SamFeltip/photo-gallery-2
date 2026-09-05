@@ -1,5 +1,5 @@
 import type { PersonResponseDto } from "@immich/sdk";
-import { env } from "cloudflare:workers";
+import { IMMICH_ACTIVITY_ACTORS } from "astro:env/server";
 
 export type ActivityActor = {
   id: string;
@@ -11,7 +11,7 @@ export type ActivityActor = {
 type PublicActor = Omit<ActivityActor, "apiKey">;
 
 function getActorSecret() {
-  const secret = env.IMMICH_ACTIVITY_ACTORS;
+  const secret = IMMICH_ACTIVITY_ACTORS;
   if (!secret) {
     throw new Error("IMMICH_ACTIVITY_ACTORS is not configured");
   }
@@ -26,6 +26,10 @@ function getActorSecret() {
 
 export function getActivityActor(id: string) {
   return getActorSecret().find((actor) => actor.id === id) ?? null;
+}
+
+export function getActivityReadApiKey() {
+  return getActorSecret()[0]?.apiKey ?? null;
 }
 
 export function getPublicActors(people: PersonResponseDto[]): PublicActor[] {

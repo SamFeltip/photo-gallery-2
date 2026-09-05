@@ -6,11 +6,11 @@ import {
   init,
   type ActivityCreateDto,
 } from "@immich/sdk";
-import { env } from "cloudflare:workers";
+import { API_KEY, IMMICH_BASE_URL } from "astro:env/server";
 
 export function initImmich() {
-  const baseUrl = env.IMMICH_BASE_URL;
-  const apiKey = env.API_KEY;
+  const baseUrl = IMMICH_BASE_URL;
+  const apiKey = API_KEY;
 
   if (!baseUrl || !apiKey) throw new Error("Immich server credentials are not configured");
 
@@ -18,13 +18,23 @@ export function initImmich() {
   return { baseUrl, apiKey };
 }
 
-export async function listAssetActivities(albumId: string, assetId: string) {
-  initImmich();
+export async function listAssetActivities(
+  albumId: string,
+  assetId: string,
+  apiKey?: string,
+) {
+  const config = initImmich();
+  if (apiKey) init({ baseUrl: `${config.baseUrl}/api`, apiKey });
   return getActivities({ albumId, assetId });
 }
 
-export async function getAssetActivityStatistics(albumId: string, assetId: string) {
-  initImmich();
+export async function getAssetActivityStatistics(
+  albumId: string,
+  assetId: string,
+  apiKey?: string,
+) {
+  const config = initImmich();
+  if (apiKey) init({ baseUrl: `${config.baseUrl}/api`, apiKey });
   return getActivityStatistics({ albumId, assetId });
 }
 

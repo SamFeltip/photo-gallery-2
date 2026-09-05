@@ -18,7 +18,6 @@ import LoadInTransition from "../components/LoadInTransition.astro";
 import BlurhashBackground from "../components/BlurhashBackground.astro";
 
 import type { AssetStack } from "../types/assets";
-import { Icon } from "astro-icon/components";
 import { getDisplayAssets } from "../lib/displayAssetHelpers";
 import {
   getShareKey,
@@ -54,7 +53,6 @@ export async function getStaticPaths() {
       params: { id: album.id },
     }));
 }
-
 const { id } = Astro.params;
 
 const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
@@ -124,13 +122,13 @@ if (errorMessage === null) {
   </head>
   <body>
     <template id="heart">
-      <Icon name="tabler:heart-filled" />
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-8-4.4-8-11a4.5 4.5 0 0 1 8-2.7A4.5 4.5 0 0 1 20 10c0 6.6-8 11-8 11Z" fill="currentColor" /></svg>
     </template>
     <template id="heart-button">
-      <Icon name="iconamoon:heart-thin" />
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-8-4.4-8-11a4.5 4.5 0 0 1 8-2.7A4.5 4.5 0 0 1 20 10c0 6.6-8 11-8 11Z" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
     </template>
     <template id="heart-button-filled">
-      <Icon name="iconamoon:heart-fill" />
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-8-4.4-8-11a4.5 4.5 0 0 1 8-2.7A4.5 4.5 0 0 1 20 10c0 6.6-8 11-8 11Z" fill="currentColor" /></svg>
     </template>
 
     <main album-id={id}>
