@@ -9,35 +9,13 @@ export function clickHeartButton(instance: CarouselInstance) {
     console.error("assetId does not exist");
     return;
   }
-  const albumId = document
-    .querySelector("[album-id]")
-    ?.getAttribute("album-id");
-  if (!albumId) {
-    console.error("no album id");
-    return;
-  }
-
   const assetId = initSlide.assetId;
-
-  let hearts: string[] = JSON.parse(
-    localStorage.getItem(`hearts-${albumId}`) ?? "[]",
+  (document.activeElement as HTMLElement | null)?.blur();
+  window.dispatchEvent(
+    new CustomEvent("open-fancybox-drawer", {
+      detail: { assetId, action: "like" },
+    }),
   );
-  if (hearts.includes(assetId)) {
-    hearts = hearts.filter((item) => item !== assetId);
-  } else {
-    hearts.push(assetId);
-  }
-  localStorage.setItem(`hearts-${albumId}`, JSON.stringify(hearts));
-
-  console.debug("clicked heart for asset", { assetId });
-
-  refreshHearts(hearts);
-
-  let button = instance
-    .getContainer()
-    ?.querySelector("button.heart-carosel") as HTMLButtonElement;
-
-  toggleButton(button);
 }
 
 export function initHeartButtonIcon(api: CarouselInstance) {
