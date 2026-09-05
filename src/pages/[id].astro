@@ -141,7 +141,7 @@ if (errorMessage === null) {
           <h1><a href="/">{album.albumName}</a></h1>
 
           <GalleryFilter album={album} displayAssets={displayAssets}>
-              <Gallery>
+              <Gallery albumId={id}>
                 {displayAssets
                   .map((asset, index) => {
                     return (

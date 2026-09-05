@@ -1,9 +1,12 @@
 import { defineConfig, fontProviders } from "astro/config";
 import icon from "astro-icon";
+import cloudflare from "@astrojs/cloudflare";
 
 import react from "@astrojs/react";
 
 export default defineConfig({
+  adapter: cloudflare({ imageService: "passthrough" }),
+  output: "server",
   integrations: [icon(), react()],
 
   fonts: [

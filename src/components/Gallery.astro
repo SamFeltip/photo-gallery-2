@@ -2,6 +2,12 @@
 // this gallery component is a wrapper for the photoswipe functionality
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import { FancyboxDrawer } from "./FancyboxDrawer";
+
+interface Props {
+  albumId: string;
+}
+
+const { albumId } = Astro.props;
 ---
 
 <style>
@@ -24,7 +30,7 @@ import { FancyboxDrawer } from "./FancyboxDrawer";
   <!-- should contain [data-fancybox] elements -->
   <slot />
 </section>
-<FancyboxDrawer client:load />
+<FancyboxDrawer albumId={albumId} client:load />
 <script>
   import {
     clickHeartButton,
@@ -33,13 +39,53 @@ import { FancyboxDrawer } from "./FancyboxDrawer";
   } from "../lib/fancyboxHeartButtonHelpers";
   import { Fancybox } from "@fancyapps/ui/dist/fancybox/";
 
-  function openDrawer() {
+  function getCurrentAssetId(instance: CarouselInstance) {
+    const slide = instance.getPage().slides[0];
+    return "assetId" in slide && typeof slide.assetId === "string"
+      ? slide.assetId
+      : null;
+  }
+
+  function openDrawer(instance: CarouselInstance) {
+    const assetId = getCurrentAssetId(instance);
+    if (!assetId) return;
     (document.activeElement as HTMLElement | null)?.blur();
-    window.dispatchEvent(new Event("open-fancybox-drawer"));
+    window.dispatchEvent(new CustomEvent("open-fancybox-drawer", { detail: { assetId } }));
   }
 
   function closeDrawer() {
     window.dispatchEvent(new Event("close-fancybox-drawer"));
+  }
+
+  async function updateCommentBubble(instance: CarouselInstance) {
+    const assetId = getCurrentAssetId(instance);
+    const slide = instance.getPage().slides[0];
+    if (!assetId || !slide.el) return;
+
+    const existing = slide.el.querySelector<HTMLButtonElement>(
+      ".fancybox-comment-bubble",
+    );
+    const button = existing ?? document.createElement("button");
+    if (!existing) {
+      button.className = "fancybox-comment-bubble";
+      button.type = "button";
+      button.style.cssText = "background:rgba(0,0,0,.7);border:0;border-radius:999px;bottom:16px;color:white;cursor:pointer;padding:8px 12px;position:absolute;right:16px;z-index:30;";
+      button.addEventListener("click", () => openDrawer(instance));
+      slide.el.append(button);
+    }
+
+    try {
+      const response = await fetch(
+        `/api/albums/${encodeURIComponent(albumId)}/assets/${encodeURIComponent(assetId)}/activities`,
+      );
+      if (!response.ok) return;
+      const { statistics } = (await response.json()) as {
+        statistics: { comments: number };
+      };
+      button.textContent = `Comments (${statistics.comments})`;
+    } catch {
+      button.textContent = "Comments";
+    }
   }
 
   document.addEventListener("DOMContentLoaded", () => refreshHearts());
@@ -81,8 +127,14 @@ import { FancyboxDrawer } from "./FancyboxDrawer";
       },
       transition: "slide",
       on: {
-        contentLoading: initHeartButtonIcon,
-        change: initHeartButtonIcon,
+        contentLoading: (instance) => {
+          initHeartButtonIcon(instance);
+          void updateCommentBubble(instance);
+        },
+        change: (instance) => {
+          initHeartButtonIcon(instance);
+          void updateCommentBubble(instance);
+        },
       },
     },
     on: {
