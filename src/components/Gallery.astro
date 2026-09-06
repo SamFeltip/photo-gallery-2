@@ -1,7 +1,7 @@
 ---
 // this gallery component is a wrapper for the photoswipe functionality
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
-import { FancyboxDrawer } from "./FancyboxDrawer";
+import { FancyboxDrawerIsland } from "./FancyboxDrawerIsland";
 
 interface Props {
   albumId: string;
@@ -30,7 +30,7 @@ const { albumId } = Astro.props;
   <!-- should contain [data-fancybox] elements -->
   <slot />
 </section>
-<FancyboxDrawer albumId={albumId} client:load />
+<FancyboxDrawerIsland albumId={albumId} client:load />
 <script>
   import {
     clickHeartButton,

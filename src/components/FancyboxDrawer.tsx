@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { actions } from "astro:actions";
+import { useEffect, useState } from "react";
 import type {
   ActivityResponseDto,
   ActivityStatisticsResponseDto,
@@ -10,10 +9,33 @@ import "./FancyboxDrawer.css";
 
 type Actor = { id: string; name: string; personId?: string };
 type OpenDetail = { assetId: string; action?: "like" | "comment" };
+type ActivityData = {
+  activities: ActivityResponseDto[];
+  statistics: ActivityStatisticsResponseDto;
+};
+type CreateActivityInput = {
+  actorId: string;
+  albumId: string;
+  assetId: string;
+  type: "like" | "comment";
+  comment?: string;
+};
+
+export type ActivityClient = {
+  getActors: (albumId: string) => Promise<Actor[]>;
+  getActivities: (albumId: string, assetId: string) => Promise<ActivityData>;
+  createActivity: (input: CreateActivityInput) => Promise<void>;
+};
 
 const EMPTY_STATISTICS: ActivityStatisticsResponseDto = { comments: 0, likes: 0 };
 
-export function FancyboxDrawer({ albumId }: { albumId: string }) {
+export function FancyboxDrawer({
+  albumId,
+  activityClient,
+}: {
+  albumId: string;
+  activityClient: ActivityClient;
+}) {
   const identityStorageKey = `activity-identity-${albumId}`;
   const [assetId, setAssetId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -30,12 +52,9 @@ export function FancyboxDrawer({ albumId }: { albumId: string }) {
   const [loadingActors, setLoadingActors] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const selectedActor = useMemo(
-    () =>
-      actors.find(({ id }) => id === actorId) ??
-      (actorId === "guest" ? { id: "guest", name: "Guest" } : null),
-    [actorId, actors],
-  );
+  const selectedActor =
+    actors.find(({ id }) => id === actorId) ??
+    (actorId === "guest" ? { id: "guest", name: "Guest" } : null);
   const comments = activities.filter(({ type }) => type === "comment");
   const totalLoves = statistics.likes + (guestLoved ? 1 : 0);
 
@@ -43,11 +62,7 @@ export function FancyboxDrawer({ albumId }: { albumId: string }) {
     if (!targetAssetId) return;
     setLoadingActivities(true);
     try {
-      const { data, error: actionError } = await actions.getPhotoActivities({
-        albumId,
-        assetId: targetAssetId,
-      });
-      if (actionError) throw new Error(actionError.message);
+      const data = await activityClient.getActivities(albumId, targetAssetId);
       setActivities(data.activities);
       setStatistics(data.statistics);
     } finally {
@@ -59,8 +74,7 @@ export function FancyboxDrawer({ albumId }: { albumId: string }) {
     if (actors.length || loadingActors) return;
     setLoadingActors(true);
     try {
-      const { data, error: actionError } = await actions.getAlbumActors({ albumId });
-      if (actionError) throw new Error(actionError.message);
+      const data = await activityClient.getActors(albumId);
       setActors(data);
     } finally {
       setLoadingActors(false);
@@ -100,17 +114,13 @@ export function FancyboxDrawer({ albumId }: { albumId: string }) {
     setError(null);
     setSubmitting(true);
     try {
-      const { error: actionError } = await actions.createPhotoActivity({
+      await activityClient.createActivity({
         actorId: selectedActorId,
         albumId,
         assetId: targetAssetId,
         type,
         ...(type === "comment" ? { comment: trimmedComment } : {}),
       });
-      if (actionError) {
-        setError(actionError.message);
-        return;
-      }
       setComment("");
       setPendingAction(null);
       await loadActivities(targetAssetId);
@@ -119,6 +129,8 @@ export function FancyboxDrawer({ albumId }: { albumId: string }) {
           detail: { assetId: targetAssetId },
         }),
       );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to save activity");
     } finally {
       setSubmitting(false);
     }
@@ -326,7 +338,7 @@ export function FancyboxDrawer({ albumId }: { albumId: string }) {
   );
 }
 
-function formatActivityDate(value: string) {
+export function formatActivityDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat(undefined, {
