@@ -5,6 +5,7 @@ export type ActivityActor = {
   id: string;
   name: string;
   personId?: string;
+  albumIds?: string[];
   apiKey: string;
 };
 
@@ -28,17 +29,20 @@ export function getActivityActor(id: string) {
   return getActorSecret().find((actor) => actor.id === id) ?? null;
 }
 
-export function getActivityReadApiKey() {
-  return getActorSecret()[0]?.apiKey ?? null;
+export function getActivityReadApiKey(albumId: string) {
+  return (
+    getActorSecret().find(
+      (actor) => !actor.albumIds || actor.albumIds.includes(albumId),
+    )?.apiKey ?? null
+  );
 }
 
 export function getPublicActors(people: PersonResponseDto[]): PublicActor[] {
-  const peopleById = new Map(people.map((person) => [person.id, person]));
-
-  return getActorSecret()
-    .filter((actor) => actor.id === "guest" || (actor.personId && peopleById.has(actor.personId)))
-    .map(({ apiKey: _apiKey, ...actor }) => ({
-      ...actor,
-      name: actor.personId ? peopleById.get(actor.personId)?.name ?? actor.name : actor.name,
-    }));
+  return [
+    { id: "guest", name: "Guest" },
+    ...people
+      .filter(({ name }) => name.trim().length > 0)
+      .sort((left, right) => left.name.localeCompare(right.name))
+      .map(({ id, name }) => ({ id: `person-${id}`, name, personId: id })),
+  ];
 }

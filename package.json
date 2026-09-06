@@ -16,7 +16,7 @@
     "provision:actors": "node scripts/provision-activity-actors.js"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^14.2.4",
+    "@astrojs/cloudflare": "14.2.4",
     "@astrojs/react": "^6.0.4",
     "@fancyapps/ui": "^6.1.14",
     "@immich/sdk": "^3.0.1",
