@@ -23,9 +23,11 @@ export async function listAssetActivities(
   assetId: string,
   apiKey?: string,
 ) {
-  const config = initImmich();
-  if (apiKey) init({ baseUrl: `${config.baseUrl}/api`, apiKey });
-  return getActivities({ albumId, assetId });
+  initImmich();
+  return getActivities(
+    { albumId, assetId },
+    apiKey ? { headers: { "x-api-key": apiKey } } : undefined,
+  );
 }
 
 export async function getAssetActivityStatistics(
@@ -33,9 +35,11 @@ export async function getAssetActivityStatistics(
   assetId: string,
   apiKey?: string,
 ) {
-  const config = initImmich();
-  if (apiKey) init({ baseUrl: `${config.baseUrl}/api`, apiKey });
-  return getActivityStatistics({ albumId, assetId });
+  initImmich();
+  return getActivityStatistics(
+    { albumId, assetId },
+    apiKey ? { headers: { "x-api-key": apiKey } } : undefined,
+  );
 }
 
 export async function createActorActivity(

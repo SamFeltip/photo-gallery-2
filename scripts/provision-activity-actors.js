@@ -11,6 +11,7 @@ import {
   createUserAdmin,
   defaults,
   getAllAlbums,
+  getMyApiKey,
   init,
   login,
   searchAssets,
@@ -19,9 +20,10 @@ import {
   updateUserAdmin,
 } from "@immich/sdk";
 
-/** @typedef {{ albums: string[], apply: boolean, envFile: string, output: string }} Options */
+/** @typedef {{ albums: string[], apply: boolean, envFile: string, output: string, updateEnv: boolean }} Options */
 /** @typedef {{ id: string, name: string, personId?: string }} Actor */
-/** @typedef {Actor & { apiKey: string }} ActorSecret */
+/** @typedef {Actor & { albumIds: string[], apiKey: string }} ActorSecret */
+/** @typedef {Actor & { albumIds: Set<string> }} ProvisioningActor */
 
 /** @param {string[]} argv @returns {Options} */
 function parseArguments(argv) {
@@ -31,11 +33,13 @@ function parseArguments(argv) {
     apply: false,
     envFile: ".env",
     output: ".immich-activity-actors.json",
+    updateEnv: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--apply") options.apply = true;
+    else if (argument === "--update-env") options.updateEnv = true;
     else if (argument === "--album") options.albums.push(requiredValue(argv, ++index, argument));
     else if (argument === "--env-file") options.envFile = requiredValue(argv, ++index, argument);
     else if (argument === "--output") options.output = requiredValue(argv, ++index, argument);
@@ -64,6 +68,16 @@ async function loadEnvironment(path) {
       ? quotedValue[2]
       : rawValue.replace(/\s+#.*$/u, "").trim();
   }
+}
+
+/** @param {string} path @param {ActorSecret[]} actors */
+async function updateEnvironment(path, actors) {
+  const contents = await readFile(path, "utf8");
+  const setting = `IMMICH_ACTIVITY_ACTORS=${JSON.stringify(actors)}`;
+  const nextContents = /^IMMICH_ACTIVITY_ACTORS=.*$/mu.test(contents)
+    ? contents.replace(/^IMMICH_ACTIVITY_ACTORS=.*$/mu, setting)
+    : `${contents.trimEnd()}\n${setting}\n`;
+  await writeFile(path, nextContents, { mode: 0o600 });
 }
 
 /** @param {string} baseUrl @param {string} apiKey */
@@ -101,7 +115,7 @@ async function main() {
   const albums = options.albums.length
     ? sharedAlbums.filter((album) => options.albums.includes(album.id))
     : sharedAlbums;
-  /** @type {Map<string, import("@immich/sdk").PersonResponseDto>} */
+  /** @type {Map<string, { albumIds: Set<string>, person: import("@immich/sdk").PersonResponseDto }>} */
   const people = new Map();
 
   for (const album of albums) {
@@ -109,25 +123,56 @@ async function main() {
       metadataSearchDto: { albumIds: [album.id], withPeople: true },
     });
     for (const asset of results.assets.items) {
-      for (const person of asset.people ?? []) people.set(person.id, person);
+      for (const person of asset.people ?? []) {
+        const existing = people.get(person.id);
+        if (existing) existing.albumIds.add(album.id);
+        else people.set(person.id, { albumIds: new Set([album.id]), person });
+      }
     }
   }
 
-  /** @type {Actor[]} */
-  const actors = [{ id: "guest", name: "Guest" }];
-  for (const person of people.values()) {
+  /** @type {ProvisioningActor[]} */
+  const actors = [];
+  for (const { albumIds, person } of people.values()) {
+    if (!person.name.trim()) continue;
     actors.push({
       id: `person-${person.id}`,
-      name: person.name || "Unnamed person",
+      name: person.name,
       personId: person.id,
+      albumIds,
     });
   }
 
   console.log(`${actors.length} activity actors across ${albums.length} shared album(s):`);
+  const disabledAlbums = albums.filter(({ isActivityEnabled }) => !isActivityEnabled);
+  if (disabledAlbums.length) {
+    console.log(
+      `${disabledAlbums.length} album(s) still need activities enabled (requires ${Permission.AlbumUpdate}):`,
+    );
+    for (const album of disabledAlbums) console.log(`  - ${album.albumName} (${album.id})`);
+  }
   for (const actor of actors) console.log(`  - ${actor.name} (${actor.id})`);
   if (!options.apply) {
     console.log("\nDry run only. Re-run with --apply to create users and API keys.");
     return;
+  }
+
+  configureAdmin(baseUrl, adminApiKey);
+  const currentApiKey = await getMyApiKey();
+  const requiredAdminPermissions = [
+    Permission.AdminUserCreate,
+    Permission.AdminUserRead,
+    Permission.AdminUserUpdate,
+    Permission.AlbumUpdate,
+    Permission.AlbumUserCreate,
+  ];
+  const missingAdminPermissions = requiredAdminPermissions.filter(
+    (permission) => !currentApiKey.permissions.includes(permission),
+  );
+  if (missingAdminPermissions.length) {
+    throw new Error(
+      `API_KEY is missing required permissions: ${missingAdminPermissions.join(", ")}`,
+    );
   }
 
   const usersByEmail = new Map(
@@ -136,7 +181,18 @@ async function main() {
   /** @type {ActorSecret[]} */
   const registry = [];
 
-  for (const actor of actors) {
+  for (const album of albums) {
+    if (!album.isActivityEnabled) {
+      configureAdmin(baseUrl, adminApiKey);
+      await updateAlbumInfo({
+        id: album.id,
+        updateAlbumDto: { isActivityEnabled: true },
+      });
+    }
+  }
+
+  for (const [index, actor] of actors.entries()) {
+    console.log(`[${index + 1}/${actors.length}] Provisioning ${actor.name}`);
     configureAdmin(baseUrl, adminApiKey);
     const email = `activity-${actor.id}@immich.local`;
     const password = randomBytes(24).toString("base64url");
@@ -160,14 +216,8 @@ async function main() {
       });
     }
 
-    for (const album of albums) {
+    for (const album of albums.filter(({ id }) => actor.albumIds.has(id))) {
       configureAdmin(baseUrl, adminApiKey);
-      if (!album.isActivityEnabled) {
-        await updateAlbumInfo({
-          id: album.id,
-          updateAlbumDto: { isActivityEnabled: true },
-        });
-      }
       if (!album.albumUsers.some(({ user: albumUser }) => albumUser.id === user.id)) {
         await addUsersToAlbum({
           id: album.id,
@@ -184,14 +234,29 @@ async function main() {
     const key = await createApiKey({
       apiKeyCreateDto: {
         name: "photo gallery activity",
-        permissions: [Permission.ActivityCreate, Permission.ActivityRead],
+        permissions: [
+          Permission.ActivityCreate,
+          Permission.ActivityRead,
+          Permission.ActivityStatistics,
+        ],
       },
     });
-    registry.push({ ...actor, apiKey: key.secret });
+    registry.push({
+      id: actor.id,
+      name: actor.name,
+      albumIds: [...actor.albumIds],
+      ...(actor.personId ? { personId: actor.personId } : {}),
+      apiKey: key.secret,
+    });
   }
 
   await writeFile(options.output, `${JSON.stringify(registry, null, 2)}\n`, { mode: 0o600 });
-  console.log(`\nWrote ${options.output}. Store its JSON as IMMICH_ACTIVITY_ACTORS, then delete the file.`);
+  if (options.updateEnv) {
+    await updateEnvironment(options.envFile, registry);
+    console.log(`\nWrote ${options.output} and updated IMMICH_ACTIVITY_ACTORS in ${options.envFile}.`);
+  } else {
+    console.log(`\nWrote ${options.output}. Store its JSON as IMMICH_ACTIVITY_ACTORS, then delete the file.`);
+  }
 }
 
 main().catch((error) => {

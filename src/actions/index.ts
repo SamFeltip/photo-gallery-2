@@ -41,7 +41,7 @@ export const server = {
     input: photoInput,
     handler: async ({ albumId, assetId }) => {
       try {
-        const activityApiKey = getActivityReadApiKey();
+        const activityApiKey = getActivityReadApiKey(albumId);
         if (!activityApiKey) {
           throw new Error("No activity actor API key is configured");
         }

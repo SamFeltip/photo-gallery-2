@@ -35,7 +35,7 @@ export function initHeartButtonIcon(api: CarouselInstance) {
     "assetId" in activeSlide === false ||
     typeof activeSlide.assetId !== "string"
   ) {
-    setButton(button, false);
+    setHeartButtonState(button, false);
     return;
   }
 
@@ -53,11 +53,11 @@ export function initHeartButtonIcon(api: CarouselInstance) {
   );
 
   if (hearts.includes(activeAssetId) === false) {
-    setButton(button, false);
+    setHeartButtonState(button, false);
     return;
   }
 
-  setButton(button, true);
+  setHeartButtonState(button, true);
 }
 
 /**
@@ -122,7 +122,7 @@ export function refreshHearts(setHearts?: string[]) {
   });
 }
 
-function setButton(button: HTMLButtonElement, state: boolean) {
+export function setHeartButtonState(button: HTMLButtonElement, state: boolean) {
   const heartButtonEmptyIconTemplate: HTMLTemplateElement | null =
     document.querySelector("template#heart-button");
   const heartButtonFilledIconTemplate: HTMLTemplateElement | null =
@@ -147,8 +147,8 @@ function setButton(button: HTMLButtonElement, state: boolean) {
 
 function toggleButton(button: HTMLButtonElement) {
   if (button.ariaPressed === "true") {
-    setButton(button, false);
+    setHeartButtonState(button, false);
   } else {
-    setButton(button, true);
+    setHeartButtonState(button, true);
   }
 }

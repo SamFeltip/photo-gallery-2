@@ -36,9 +36,11 @@ const { albumId } = Astro.props;
     clickHeartButton,
     initHeartButtonIcon,
     refreshHearts,
+    setHeartButtonState,
   } from "../lib/fancyboxHeartButtonHelpers";
   import { actions } from "astro:actions";
   import { Fancybox } from "@fancyapps/ui/dist/fancybox/";
+  import { isGuestLoved } from "@/lib/guestActivity";
 
   function getCurrentAssetId(instance: CarouselInstance) {
     const slide = instance.getPage().slides[0];
@@ -70,7 +72,7 @@ const { albumId } = Astro.props;
     if (!existing) {
       button.className = "fancybox-comment-bubble";
       button.type = "button";
-      button.style.cssText = "background:rgba(0,0,0,.7);border:0;border-radius:999px;bottom:16px;color:white;cursor:pointer;padding:8px 12px;position:absolute;right:16px;z-index:30;";
+      button.style.cssText = "backdrop-filter:blur(12px);background:rgba(18,18,22,.78);border:1px solid rgba(255,255,255,.16);border-radius:14px;bottom:16px;color:white;cursor:pointer;display:grid;gap:2px;max-width:min(28rem,calc(100% - 32px));overflow:hidden;padding:9px 12px;position:absolute;right:16px;text-align:left;z-index:30;";
       button.addEventListener("click", () => openDrawer(instance));
       slide.el.append(button);
     }
@@ -81,14 +83,44 @@ const { albumId } = Astro.props;
         assetId,
       });
       if (error) return;
-      const { statistics } = data;
-      button.textContent = `Comments (${statistics.comments})`;
+      const comments = data.activities
+        .filter(({ type, comment }) => type === "comment" && comment)
+        .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+      const latestComment = comments[0];
+      button.replaceChildren();
+      if (latestComment?.comment) {
+        const author = document.createElement("strong");
+        author.textContent = latestComment.user.name;
+        author.style.cssText = "font-size:.76rem;line-height:1.2;opacity:.78;";
+        const preview = document.createElement("span");
+        preview.textContent = latestComment.comment;
+        preview.style.cssText = "display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+        button.append(author, preview);
+      } else {
+        button.textContent = "Add a comment";
+      }
+      button.title = `${data.statistics.comments} comment${data.statistics.comments === 1 ? "" : "s"}`;
+
+      const heartButton = instance
+        .getContainer()
+        ?.querySelector<HTMLButtonElement>("button.heart-carosel");
+      if (heartButton) {
+        setHeartButtonState(
+          heartButton,
+          data.statistics.likes > 0 || isGuestLoved(albumId, assetId),
+        );
+        heartButton.title = `${data.statistics.likes + (isGuestLoved(albumId, assetId) ? 1 : 0)} loves`;
+      }
     } catch {
       button.textContent = "Comments";
     }
   }
 
   document.addEventListener("DOMContentLoaded", () => refreshHearts());
+  window.addEventListener("immich-activity-changed", () => {
+    const instance = Fancybox.getInstance();
+    if (instance) void updateCommentBubble(instance);
+  });
 
   Fancybox.bind("[data-fancybox]", {
     // Vaul is the only modal layer. This keeps Fancybox below its portal and
