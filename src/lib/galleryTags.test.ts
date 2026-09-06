@@ -36,6 +36,7 @@ describe("getGalleryTagData", () => {
 
     expect(result.tags).toEqual([{ id: "tag-lake", name: "Lake", value: "Lake", count: 1 }]);
     expect(result.tagIdsByGroupId).toEqual({ stack: ["tag-lake"] });
+    expect(result.tagIdsByAssetId).toEqual({ primary: ["tag-lake"], stacked: ["tag-lake"] });
     expect(searchAssets).toHaveBeenCalledWith({
       metadataSearchDto: expect.objectContaining({ albumIds: ["album"], tagIds: ["tag-lake"] }),
     });

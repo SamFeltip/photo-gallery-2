@@ -8,6 +8,7 @@ export type GalleryTag = Pick<TagResponseDto, "id" | "name" | "value"> & {
 export type GalleryTagData = {
   tags: GalleryTag[];
   tagIdsByGroupId: Record<string, string[]>;
+  tagIdsByAssetId: Record<string, string[]>;
 };
 
 async function getAssetIdsForTag(albumId: string, tagId: string) {
@@ -45,13 +46,15 @@ export async function getGalleryTagData(
   const tagIdsByGroupId = Object.fromEntries(
     displayAssets.map(({ id }) => [id, [] as string[]]),
   );
-
   for (const group of displayAssets) {
     groupIdsByAssetId.set(group.bestItem.id, group.id);
     for (const asset of group.stackItems ?? []) {
       groupIdsByAssetId.set(asset.id, group.id);
     }
   }
+  const tagIdsByAssetId = Object.fromEntries(
+    [...groupIdsByAssetId.keys()].map((id) => [id, [] as string[]]),
+  );
 
   const matches = await Promise.all(
     tags.map(async (tag) => ({ tag, assetIds: await getAssetIdsForTag(albumId, tag.id) })),
@@ -62,7 +65,10 @@ export async function getGalleryTagData(
     const matchingGroupIds = new Set<string>();
     for (const assetId of assetIds) {
       const groupId = groupIdsByAssetId.get(assetId);
-      if (groupId) matchingGroupIds.add(groupId);
+      if (groupId) {
+        matchingGroupIds.add(groupId);
+        tagIdsByAssetId[assetId].push(tag.id);
+      }
     }
 
     if (matchingGroupIds.size === 0) continue;
@@ -79,5 +85,5 @@ export async function getGalleryTagData(
     (left.name || left.value).localeCompare(right.name || right.value),
   );
 
-  return { tags: galleryTags, tagIdsByGroupId };
+  return { tags: galleryTags, tagIdsByGroupId, tagIdsByAssetId };
 }
