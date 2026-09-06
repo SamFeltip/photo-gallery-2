@@ -6,6 +6,7 @@ import {
   type ActivityClient,
 } from "@/components/FancyboxDrawer";
 import { installIntentPrefetch } from "@/lib/imagePrefetch";
+import { installGalleryFiltering } from "@/lib/galleryFiltering";
 import "./fixture.css";
 
 const activities: ActivityResponseDto[] = [];
@@ -62,7 +63,14 @@ function App() {
   const [photoOpen, setPhotoOpen] = useState(false);
   const [clicks, setClicks] = useState(0);
 
-  useEffect(() => installIntentPrefetch(), []);
+  useEffect(() => {
+    const removePrefetch = installIntentPrefetch();
+    const removeFiltering = installGalleryFiltering();
+    return () => {
+      removePrefetch();
+      removeFiltering();
+    };
+  }, []);
 
   return (
     <main>
@@ -78,6 +86,21 @@ function App() {
       >
         Prefetch photo
       </a>
+
+      <section id="gallery-filter" aria-label="Filter fixture">
+        <div className="tag-filter-fixture" aria-label="Photo tags">
+          <button type="button" data-gallery-tag="lake" aria-pressed="false">Lake</button>
+          <button type="button" data-gallery-tag="city" aria-pressed="false">City</button>
+          <button type="button" data-gallery-tags-clear hidden>Clear tags</button>
+        </div>
+        <p data-gallery-result-count aria-live="polite" />
+        <div id="photoswipe">
+          <a className="thumbhash-img" href="#lake" data-tags="lake" data-people="sam">Lake photo</a>
+          <a className="thumbhash-img" href="#city" data-tags="city" data-people="alex">City photo</a>
+          <a className="thumbhash-img" href="#both" data-tags="lake,city" data-people="sam,alex">Lake and city photo</a>
+        </div>
+        <div data-gallery-empty hidden>No matching photos</div>
+      </section>
 
       {photoOpen && (
         <section className="photo-fixture" aria-label="Photo viewer">

@@ -50,3 +50,32 @@ test("prefetches a full image when the thumbnail shows pointer intent", async ({
   await page.getByRole("link", { name: "Prefetch photo" }).hover();
   await expect(requested).resolves.toBeTruthy();
 });
+
+test("filters by multiple tags, updates counts, and clears the selection", async ({ page }) => {
+  await page.getByRole("button", { name: "Lake" }).click();
+  await expect(page).toHaveURL(/tag=lake/);
+  await expect(page.getByText("2 of 3 photos")).toBeVisible();
+  await expect(page.getByRole("link", { name: "City photo", exact: true })).toBeHidden();
+
+  await page.getByRole("button", { name: "City" }).click();
+  await expect(page.getByText("3 of 3 photos")).toBeVisible();
+
+  await page.getByRole("button", { name: "Clear tags" }).click();
+  await expect(page).not.toHaveURL(/tag=/);
+  await expect(page.getByRole("button", { name: "Clear tags" })).toBeHidden();
+});
+
+test("restores a shared tag-filter URL and shows an empty state", async ({ page }) => {
+  await page.goto("/?tag=city");
+  await expect(page.getByRole("button", { name: "City" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("2 of 3 photos")).toBeVisible();
+
+  await page.evaluate(() => {
+    document.querySelector("#gallery-filter")?.dispatchEvent(new CustomEvent("person", {
+      bubbles: true,
+      detail: { personId: "missing", toggleMode: "active" },
+    }));
+  });
+  await expect(page.getByText("No matching photos")).toBeVisible();
+  await expect(page.getByText("0 of 3 photos")).toBeVisible();
+});

@@ -1,0 +1,94 @@
+---
+import type { GalleryTag } from "@/lib/galleryTags";
+
+interface Props {
+  tags: GalleryTag[];
+}
+
+const { tags } = Astro.props;
+---
+
+{tags.length > 0 && (
+  <section class="tag-filter" aria-labelledby="tag-filter-title">
+    <div class="tag-filter__heading">
+      <div>
+        <h2 id="tag-filter-title">Filter by tag</h2>
+        <p>Select one or more tags to show photos matching any selection.</p>
+      </div>
+      <button type="button" class="tag-filter__clear" data-gallery-tags-clear hidden>
+        Clear tags
+      </button>
+    </div>
+    <div class="tag-filter__options" aria-label="Photo tags">
+      {tags.map((tag) => (
+        <button
+          type="button"
+          class="tag-filter__tag"
+          data-gallery-tag={tag.id}
+          aria-pressed="false"
+        >
+          <span>{tag.name || tag.value}</span>
+          <span class="tag-filter__count" aria-label={`${tag.count} photos`}>{tag.count}</span>
+        </button>
+      ))}
+    </div>
+  </section>
+)}
+
+<style>
+  .tag-filter {
+    margin: 0 0 1.5rem;
+    padding: clamp(1rem, 2vw, 1.4rem);
+    border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    border-radius: 18px;
+    background: color-mix(in srgb, Canvas 94%, currentColor 6%);
+  }
+
+  .tag-filter__heading {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.9rem;
+  }
+
+  h2 { margin: 0; font-size: clamp(1rem, 2vw, 1.2rem); }
+  p { margin: 0.2rem 0 0; opacity: 0.68; font-size: 0.9rem; }
+
+  .tag-filter__options { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+  .tag-filter__tag,
+  .tag-filter__clear {
+    border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    border-radius: 999px;
+    color: inherit;
+    background: Canvas;
+    cursor: pointer;
+    font: inherit;
+  }
+  .tag-filter__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    padding: 0.42rem 0.55rem 0.42rem 0.85rem;
+  }
+  .tag-filter__tag:hover { border-color: currentColor; }
+  .tag-filter__tag.active {
+    color: Canvas;
+    background: CanvasText;
+    border-color: CanvasText;
+  }
+  .tag-filter__count {
+    display: grid;
+    place-items: center;
+    min-width: 1.7rem;
+    height: 1.7rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, currentColor 14%, transparent);
+    font-size: 0.78rem;
+  }
+  .tag-filter__clear { padding: 0.5rem 0.75rem; white-space: nowrap; }
+  .tag-filter__tag:focus-visible,
+  .tag-filter__clear:focus-visible { outline: 3px solid var(--outline); outline-offset: 2px; }
+</style>

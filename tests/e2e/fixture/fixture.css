@@ -11,6 +11,28 @@ main > button {
   margin: 1rem;
 }
 
+#gallery-filter {
+  margin: 1rem;
+  padding: 1rem;
+  border: 1px solid #ddd;
+}
+
+.tag-filter-fixture,
+#photoswipe {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+#photoswipe a {
+  padding: 0.75rem;
+  background: #eef3f7;
+}
+
+#photoswipe a.gallery-filter-hidden {
+  display: none !important;
+}
+
 .photo-fixture {
   background: #101014;
   inset: 0;
