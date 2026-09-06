@@ -2,10 +2,21 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "command": "./node_modules/.bin/astro dev",
-      "name": "Development server",
+      "args": ["dev", "--host", "127.0.0.1"],
+      "console": "integratedTerminal",
+      "env": {
+        "ASTRO_DEV_BACKGROUND": "0"
+      },
+      "name": "Debug Astro",
+      "program": "${workspaceFolder}/node_modules/astro/bin/astro.mjs",
       "request": "launch",
-      "type": "node-terminal"
+      "serverReadyAction": {
+        "action": "debugWithChrome",
+        "pattern": "Local\\s+(https?://\\S+)",
+        "uriFormat": "%s"
+      },
+      "skipFiles": ["<node_internals>/**"],
+      "type": "node"
     }
   ]
 }

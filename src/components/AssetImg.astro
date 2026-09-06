@@ -2,7 +2,6 @@
 import type { AssetStack } from "../types/assets";
 import { Image } from "astro:assets";
 import { type AssetResponseDto } from "@immich/sdk";
-import { Icon } from "astro-icon/components";
 
 const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
 
@@ -120,7 +119,9 @@ const peopleIds = Object.fromEntries(
           >
             {asset.stackItems?.length + 1}
           </p>
-          <Icon name="mdi:image-multiple" />
+          <svg viewBox="0 0 24 24" aria-hidden="true" width="1em" height="1em">
+            <path d="M4 6h12v12H4zM8 2h12v12" fill="none" stroke="currentColor" stroke-width="2" />
+          </svg>
         </div>
       )
     }
