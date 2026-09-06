@@ -8,6 +8,8 @@ Playwright tests, and `pnpm build` before it is marked complete.
 
 Branch: `comments-and-immich-likes-drawer`
 
+PR: [#1](https://github.com/SamFeltip/photo-gallery-2/pull/1)
+
 - [x] Render the app on the server and call Immich through `@immich/sdk` only.
 - [x] Keep Fancybox and the Vaul drawer usable together without conflicting modal
       focus traps or leaving the page inert after closing.
@@ -29,25 +31,24 @@ Branch: `comments-and-immich-likes-drawer`
 - [ ] Run provisioning for the 46 named faces after the administrator key gains
       its required user-management permissions.
 - [ ] Verify a real named-user like and comment against Immich.
-- [ ] Open PR 1.
+- [x] Open PR 1.
 
 External prerequisite: the provisioning `API_KEY` needs `adminUser.create`,
-`adminUser.read`, and `adminUser.update`. GitHub CLI authentication must also be
-restored before PRs can be published.
+`adminUser.read`, and `adminUser.update`.
 
 ## Stage 2 — Vitest and Playwright coverage
 
 Branch: `codex/activity-tests`
 
-- [ ] Add Vitest, React Testing Library, DOM matchers, and a DOM test environment.
-- [ ] Unit-test identity selection, Guest restrictions/local likes, comments,
+- [x] Add Vitest, React Testing Library, DOM matchers, and a DOM test environment.
+- [x] Unit-test identity selection, Guest restrictions/local likes, comments,
       activity formatting, and SDK-backed server actions with mocked boundaries.
-- [ ] Add Playwright configuration and browser installation instructions.
-- [ ] Add deterministic test fixtures/mocks so browser tests never mutate Immich.
-- [ ] Cover Fancybox → drawer → identity modal → like/comment flows.
-- [ ] Cover closing the drawer and Fancybox, including focus and clickability
+- [x] Add Playwright configuration and browser installation instructions.
+- [x] Add deterministic test fixtures/mocks so browser tests never mutate Immich.
+- [x] Cover photo viewer → drawer → identity modal → like/comment flows.
+- [x] Cover closing the drawer and photo viewer, including focus and clickability
       regression checks.
-- [ ] Add test scripts and CI workflow.
+- [x] Add test scripts and CI workflow.
 - [ ] Open PR 2.
 
 ## Stage 3 — Gallery presentation and prefetching
