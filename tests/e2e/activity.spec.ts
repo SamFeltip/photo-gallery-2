@@ -42,3 +42,11 @@ test("restores page clickability after closing both layers", async ({ page }) =>
   await expect(page.getByRole("button", { name: "Page remains clickable: 1" })).toBeVisible();
   await expect(page.locator("body")).not.toHaveCSS("pointer-events", "none");
 });
+
+test("prefetches a full image when the thumbnail shows pointer intent", async ({ page }) => {
+  const requested = page.waitForRequest((request) =>
+    request.url().endsWith("/prefetch/photo-1.jpg"),
+  );
+  await page.getByRole("link", { name: "Prefetch photo" }).hover();
+  await expect(requested).resolves.toBeTruthy();
+});

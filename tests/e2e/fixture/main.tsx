@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ReactionType, UserAvatarColor, type ActivityResponseDto } from "@immich/sdk";
 import {
   FancyboxDrawer,
   type ActivityClient,
 } from "@/components/FancyboxDrawer";
+import { installIntentPrefetch } from "@/lib/imagePrefetch";
 import "./fixture.css";
 
 const activities: ActivityResponseDto[] = [];
@@ -61,6 +62,8 @@ function App() {
   const [photoOpen, setPhotoOpen] = useState(false);
   const [clicks, setClicks] = useState(0);
 
+  useEffect(() => installIntentPrefetch(), []);
+
   return (
     <main>
       <h1>Activity browser fixture</h1>
@@ -68,6 +71,13 @@ function App() {
       <button type="button" onClick={() => setClicks((value) => value + 1)}>
         Page remains clickable: {clicks}
       </button>
+      <a
+        data-prefetch-src="/prefetch/photo-1.jpg"
+        href="/prefetch/photo-1.jpg"
+        onClick={(event) => event.preventDefault()}
+      >
+        Prefetch photo
+      </a>
 
       {photoOpen && (
         <section className="photo-fixture" aria-label="Photo viewer">

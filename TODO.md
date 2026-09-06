@@ -57,13 +57,14 @@ PR: [#2](https://github.com/SamFeltip/photo-gallery-2/pull/2)
 
 Branch: `codex/gallery-stacks-prefetch`
 
-- [ ] Detect stacks and use each stack as a carousel.
-- [ ] When no stacks exist, show every photo in the scrolling gallery.
-- [ ] Preserve stable ordering and avoid duplicate assets.
-- [ ] Prefetch the likely next/previous full-screen images before navigation.
-- [ ] Prefetch thumbnails close to the scrolling viewport without excessive data
+- [x] Detect stacks and use each stack as a carousel.
+- [x] When no stacks exist, show every photo in the scrolling gallery and one
+      album-wide carousel.
+- [x] Preserve stable ordering and avoid duplicate assets.
+- [x] Prefetch the likely next/previous full-screen images before navigation.
+- [x] Prefetch on pointer, keyboard, or touch intent without excessive data
       use.
-- [ ] Add unit and Playwright coverage.
+- [x] Add unit and Playwright coverage.
 - [ ] Open PR 3.
 
 ## Stage 4 — Tag filtering

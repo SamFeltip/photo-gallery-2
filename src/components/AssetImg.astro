@@ -8,10 +8,11 @@ const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
 interface Props {
   shareKey: string;
   asset: AssetStack;
+  fancyboxGroup: string;
   lazy: boolean;
 }
 
-const { lazy, asset, shareKey } = Astro.props;
+const { lazy, asset, fancyboxGroup, shareKey } = Astro.props;
 
 function getDescription(asset: AssetResponseDto) {
   return asset.exifInfo?.description || asset.originalFileName;
@@ -77,9 +78,10 @@ const peopleIds = Object.fromEntries(
   `}
   href={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=fullsize`}
   data-download-src={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=preview`}
+  data-prefetch-src={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=fullsize`}
   data-asset-id={asset.bestItem.id}
   target="_blank"
-  data-fancybox={asset.id}
+  data-fancybox={fancyboxGroup}
   class="thumbhash-img"
   {...peopleIds}
 >
@@ -153,10 +155,11 @@ const peopleIds = Object.fromEntries(
     return (
       <div style={{ display: "none" }}>
         <a
-          data-fancybox={asset.id}
+          data-fancybox={fancyboxGroup}
           href={`${IMMICH_BASE_URL}/api/assets/${stackAsset.id}/thumbnail?key=${shareKey}&size=fullsize`}
           data-download-src={`${IMMICH_BASE_URL}/api/assets/${stackAsset.id}/thumbnail?key=${shareKey}&size=preview`}
           data-asset-id={stackAsset.id}
+          data-prefetch-src={`${IMMICH_BASE_URL}/api/assets/${stackAsset.id}/thumbnail?key=${shareKey}&size=fullsize`}
         >
           <Image
             id={stackAsset.id}
