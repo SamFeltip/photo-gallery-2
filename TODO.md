@@ -40,6 +40,8 @@ External prerequisite: the provisioning `API_KEY` needs `adminUser.create`,
 
 Branch: `codex/activity-tests`
 
+PR: [#2](https://github.com/SamFeltip/photo-gallery-2/pull/2)
+
 - [x] Add Vitest, React Testing Library, DOM matchers, and a DOM test environment.
 - [x] Unit-test identity selection, Guest restrictions/local likes, comments,
       activity formatting, and SDK-backed server actions with mocked boundaries.
@@ -49,7 +51,7 @@ Branch: `codex/activity-tests`
 - [x] Cover closing the drawer and photo viewer, including focus and clickability
       regression checks.
 - [x] Add test scripts and CI workflow.
-- [ ] Open PR 2.
+- [x] Open PR 2.
 
 ## Stage 3 — Gallery presentation and prefetching
 
