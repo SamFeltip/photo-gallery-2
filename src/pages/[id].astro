@@ -13,6 +13,7 @@ import BlurhashBackground from "../components/BlurhashBackground.astro";
 
 import type { AssetStack } from "../types/assets";
 import { getDisplayAssets } from "../lib/displayAssetHelpers";
+import { albumHasStacks, getFancyboxGroup } from "../lib/galleryPresentation";
 import { getShareKey } from "../lib/shareKey";
 
 const { id } = Astro.params;
@@ -45,6 +46,8 @@ if (errorMessage === null) {
     }
   }
 }
+
+const hasStacks = albumHasStacks(displayAssets);
 ---
 
 <html lang="en">
@@ -108,7 +111,12 @@ if (errorMessage === null) {
                       <span class="asset-wrapper" style={{display: "contents"}}>
                         <LoadInTransition>
                           <BlurhashBackground asset={asset.bestItem}>
-                            <AssetImg asset={asset} shareKey={shareKey} lazy={index > 6}/>
+                            <AssetImg
+                              asset={asset}
+                              fancyboxGroup={getFancyboxGroup(id, asset, hasStacks)}
+                              shareKey={shareKey}
+                              lazy={index > 6}
+                            />
                           </BlurhashBackground>
                         </LoadInTransition>
                       </span>

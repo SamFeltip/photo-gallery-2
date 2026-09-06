@@ -41,6 +41,11 @@ const { albumId } = Astro.props;
   import { actions } from "astro:actions";
   import { Fancybox } from "@fancyapps/ui/dist/fancybox/";
   import { isGuestLoved } from "@/lib/guestActivity";
+  import {
+    getNeighborIndexes,
+    installIntentPrefetch,
+    prefetchImage,
+  } from "@/lib/imagePrefetch";
 
   function getCurrentAssetId(instance: CarouselInstance) {
     const slide = instance.getPage().slides[0];
@@ -58,6 +63,14 @@ const { albumId } = Astro.props;
 
   function closeDrawer() {
     window.dispatchEvent(new Event("close-fancybox-drawer"));
+  }
+
+  function prefetchCarouselNeighbors(instance: CarouselInstance) {
+    const slides = instance.getOption("slides");
+    for (const index of getNeighborIndexes(instance.getPageIndex(), slides.length)) {
+      const slide = slides[index];
+      if ("src" in slide && typeof slide.src === "string") prefetchImage(slide.src);
+    }
   }
 
   async function updateCommentBubble(instance: CarouselInstance) {
@@ -116,7 +129,10 @@ const { albumId } = Astro.props;
     }
   }
 
-  document.addEventListener("DOMContentLoaded", () => refreshHearts());
+  document.addEventListener("DOMContentLoaded", () => {
+    refreshHearts();
+    installIntentPrefetch();
+  });
   window.addEventListener("immich-activity-changed", () => {
     const instance = Fancybox.getInstance();
     if (instance) void updateCommentBubble(instance);
@@ -161,10 +177,12 @@ const { albumId } = Astro.props;
       on: {
         contentLoading: (instance) => {
           initHeartButtonIcon(instance);
+          prefetchCarouselNeighbors(instance);
           void updateCommentBubble(instance);
         },
         change: (instance) => {
           initHeartButtonIcon(instance);
+          prefetchCarouselNeighbors(instance);
           void updateCommentBubble(instance);
         },
       },
