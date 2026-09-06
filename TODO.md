@@ -86,12 +86,14 @@ PR: [#4](https://github.com/SamFeltip/photo-gallery-2/pull/4)
 
 Branch: `codex/handheld-stories`
 
-- [ ] Show assets tagged `handheld` as memory/story cards above the main gallery.
-- [ ] Build a full-screen, touch-friendly vertical story viewer.
-- [ ] Add progress, pause, navigation, love, comments, and identity selection.
-- [ ] Reuse the activity model from Stage 1 and filtering data from Stage 4.
-- [ ] Add unit and Playwright coverage for mouse, keyboard, and touch interactions.
-- [ ] Open PR 5.
+PR: [#5](https://github.com/SamFeltip/photo-gallery-2/pull/5)
+
+- [x] Show assets tagged `handheld` as memory/story cards above the main gallery.
+- [x] Build a full-screen, touch-friendly vertical story viewer.
+- [x] Add progress, pause, navigation, love, comments, and identity selection.
+- [x] Reuse the activity model from Stage 1 and filtering data from Stage 4.
+- [x] Add unit and Playwright coverage for mouse, keyboard, and touch interactions.
+- [x] Open PR 5.
 
 ## Stage 6 — Select, download, and share
 

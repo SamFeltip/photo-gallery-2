@@ -16,6 +16,8 @@ import { getDisplayAssets } from "../lib/displayAssetHelpers";
 import { albumHasStacks, getFancyboxGroup } from "../lib/galleryPresentation";
 import { getShareKey } from "../lib/shareKey";
 import { getGalleryTagData, type GalleryTagData } from "@/lib/galleryTags";
+import HandheldStories from "@/components/HandheldStories.astro";
+import { getHandheldAssets, type HandheldStory } from "@/lib/handheldStories";
 
 const { id } = Astro.params;
 
@@ -36,7 +38,7 @@ try {
 
 let album: AlbumResponseDto | undefined;
 let displayAssets: AssetStack[] = [];
-let tagData: GalleryTagData = { tags: [], tagIdsByGroupId: {} };
+let tagData: GalleryTagData = { tags: [], tagIdsByGroupId: {}, tagIdsByAssetId: {} };
 
 if (errorMessage === null) {
   try {
@@ -51,6 +53,17 @@ if (errorMessage === null) {
 }
 
 const hasStacks = albumHasStacks(displayAssets);
+const stories: HandheldStory[] = getHandheldAssets(
+  displayAssets,
+  tagData.tags,
+  tagData.tagIdsByAssetId,
+)
+  .map((asset) => ({
+    assetId: asset.id,
+    description: asset.exifInfo?.description || asset.originalFileName,
+    fullUrl: `${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=fullsize`,
+    thumbnailUrl: `${IMMICH_BASE_URL}/api/assets/${asset.id}/thumbnail?key=${shareKey}&size=preview`,
+  }));
 ---
 
 <html lang="en">
@@ -105,6 +118,8 @@ const hasStacks = albumHasStacks(displayAssets);
           <p>{errorMessage}</p>
         ) : (
           <h1><a href="/">{album.albumName}</a></h1>
+
+          <HandheldStories stories={stories} />
 
           <GalleryFilter album={album} displayAssets={displayAssets} tags={tagData.tags}>
               <Gallery albumId={id}>

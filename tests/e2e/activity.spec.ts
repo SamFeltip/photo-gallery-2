@@ -52,7 +52,7 @@ test("prefetches a full image when the thumbnail shows pointer intent", async ({
 });
 
 test("filters by multiple tags, updates counts, and clears the selection", async ({ page }) => {
-  await page.getByRole("button", { name: "Lake" }).click();
+  await page.getByRole("button", { name: "Lake", exact: true }).click();
   await expect(page).toHaveURL(/tag=lake/);
   await expect(page.getByText("2 of 3 photos")).toBeVisible();
   await expect(page.getByRole("link", { name: "City photo", exact: true })).toBeHidden();
@@ -78,4 +78,46 @@ test("restores a shared tag-filter URL and shows an empty state", async ({ page 
   });
   await expect(page.getByText("No matching photos")).toBeVisible();
   await expect(page.getByText("0 of 3 photos")).toBeVisible();
+});
+
+test("opens handheld stories and supports keyboard controls", async ({ page }) => {
+  const firstStory = page.getByRole("button", { name: /Open story 1/ });
+  await firstStory.click();
+  await expect(page.getByRole("dialog", { name: /Story 1 of 3/ })).toBeVisible();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("dialog", { name: /Story 2 of 3/ })).toBeVisible();
+  await page.keyboard.press("Space");
+  await expect(page.getByRole("button", { name: "Resume story" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: /Story/ })).toBeHidden();
+  await expect(firstStory).toBeFocused();
+});
+
+test("swipes between stories and opens their shared comment drawer", async ({ page }) => {
+  await page.getByRole("button", { name: /Open story 1/ }).click();
+  const dialog = page.getByRole("dialog", { name: /Story 1 of 3/ });
+  await dialog.dispatchEvent("pointerdown", { clientY: 500 });
+  await dialog.dispatchEvent("pointerup", { clientY: 300 });
+  await expect(page.getByRole("dialog", { name: /Story 2 of 3/ })).toBeVisible();
+
+  await page.getByRole("button", { name: "Comment on this story" }).click();
+  await expect(page.getByRole("dialog", { name: "Comments" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Choose who you are" })).toBeVisible();
+  await page.getByRole("button", { name: "Sam Felton" }).click();
+  const comment = page.getByRole("textbox", { name: "Add a comment" });
+  await comment.pressSequentially("hello world");
+  await page.keyboard.press("ArrowRight");
+  await expect(comment).toHaveValue("hello world");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Comments" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Comment on this story" })).toBeFocused();
+  await expect(page.getByRole("dialog", { name: /Story 2 of 3/ })).toBeVisible();
+  await page.getByRole("button", { name: "Close stories" }).click();
+  await expect(page.getByRole("dialog", { name: /Story/ })).toBeHidden();
+  expect(await page.locator("body").evaluate((body) => ({
+    overflow: body.style.overflow,
+    inertChildren: [...body.children].filter((child) => (child as HTMLElement).inert).length,
+  }))).toEqual({ overflow: "", inertChildren: 0 });
+  await page.getByRole("button", { name: /Page remains clickable/ }).click();
+  await expect(page.getByRole("button", { name: "Page remains clickable: 1" })).toBeVisible();
 });

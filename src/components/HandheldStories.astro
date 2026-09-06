@@ -1,0 +1,63 @@
+---
+import type { HandheldStory } from "@/lib/handheldStories";
+import "./HandheldStories.css";
+
+interface Props {
+  stories: HandheldStory[];
+}
+
+const { stories } = Astro.props;
+---
+
+{stories.length > 0 && (
+  <section class="stories" data-handheld-stories aria-labelledby="stories-heading">
+    <div class="stories__heading">
+      <div>
+        <p class="stories__eyebrow">From the day</p>
+        <h2 id="stories-heading">Handheld stories</h2>
+      </div>
+      <span>{stories.length} {stories.length === 1 ? "moment" : "moments"}</span>
+    </div>
+    <div class="stories__rail">
+      {stories.map((story, index) => (
+        <button
+          type="button"
+          class="stories__card"
+          data-story-open
+          data-asset-id={story.assetId}
+          data-description={story.description}
+          data-full-url={story.fullUrl}
+          aria-label={`Open story ${index + 1}: ${story.description}`}
+        >
+          <img src={story.thumbnailUrl} alt="" loading={index < 4 ? "eager" : "lazy"} />
+          <span>{index + 1}</span>
+        </button>
+      ))}
+    </div>
+
+    <div class="story-viewer" data-story-viewer role="dialog" aria-modal="true" hidden>
+      <div class="story-viewer__progress" aria-hidden="true">
+        {stories.map((story) => <span><i data-story-progress data-asset-id={story.assetId} /></span>)}
+      </div>
+      <div class="story-viewer__topbar">
+        <div><strong>Handheld</strong><span data-story-current aria-live="polite" /></div>
+        <button type="button" data-story-pause aria-label="Pause story">Ⅱ</button>
+        <button type="button" data-story-close aria-label="Close stories">×</button>
+      </div>
+      <img class="story-viewer__image" data-story-image alt="" />
+      <div class="story-viewer__scrim"></div>
+      <button class="story-viewer__previous" data-story-previous type="button" aria-label="Previous story"></button>
+      <button class="story-viewer__next" data-story-next type="button" aria-label="Next story"></button>
+      <div class="story-viewer__actions">
+        <button type="button" data-story-love aria-label="Love this story"><span aria-hidden="true">♡</span><small>Love</small></button>
+        <button type="button" data-story-comment aria-label="Comment on this story"><span aria-hidden="true">◯</span><small>Comment</small></button>
+      </div>
+      <p class="story-viewer__caption" data-story-caption></p>
+    </div>
+  </section>
+)}
+
+<script>
+  import { installHandheldStories } from "@/lib/handheldStories";
+  installHandheldStories();
+</script>

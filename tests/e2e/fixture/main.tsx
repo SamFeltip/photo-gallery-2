@@ -7,10 +7,19 @@ import {
 } from "@/components/FancyboxDrawer";
 import { installIntentPrefetch } from "@/lib/imagePrefetch";
 import { installGalleryFiltering } from "@/lib/galleryFiltering";
+import { installHandheldStories } from "@/lib/handheldStories";
+import "@/components/HandheldStories.css";
 import "./fixture.css";
 
 const activities: ActivityResponseDto[] = [];
 let likes = 0;
+
+const storyImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='900'%3E%3Crect width='600' height='900' fill='%232a536d'/%3E%3Ccircle cx='430' cy='220' r='100' fill='%23f5c879'/%3E%3Cpath d='M0 640L220 360l160 210 100-100 120 170v260H0z' fill='%23152e36'/%3E%3C/svg%3E";
+const storyFixtures = [
+  { assetId: "story-1", description: "A mountain at sunset", fullUrl: storyImage, thumbnailUrl: storyImage },
+  { assetId: "story-2", description: "A walk beside the lake", fullUrl: storyImage, thumbnailUrl: storyImage },
+  { assetId: "story-3", description: "The evening sky", fullUrl: storyImage, thumbnailUrl: storyImage },
+];
 
 const activityClient: ActivityClient = {
   async getActors() {
@@ -66,9 +75,11 @@ function App() {
   useEffect(() => {
     const removePrefetch = installIntentPrefetch();
     const removeFiltering = installGalleryFiltering();
+    const removeStories = installHandheldStories();
     return () => {
       removePrefetch();
       removeFiltering();
+      removeStories();
     };
   }, []);
 
@@ -86,6 +97,27 @@ function App() {
       >
         Prefetch photo
       </a>
+
+      <section className="stories" data-handheld-stories aria-labelledby="stories-heading">
+        <h2 id="stories-heading">Handheld stories</h2>
+        <div className="stories__rail">
+          {storyFixtures.map((story, index) => (
+            <button key={story.assetId} type="button" className="stories__card" data-story-open data-asset-id={story.assetId} data-description={story.description} data-full-url={story.fullUrl} aria-label={`Open story ${index + 1}: ${story.description}`}>
+              <img src={story.thumbnailUrl} alt="" /><span>{index + 1}</span>
+            </button>
+          ))}
+        </div>
+        <div className="story-viewer" data-story-viewer role="dialog" aria-modal="true" hidden>
+          <div className="story-viewer__progress" aria-hidden="true">{storyFixtures.map(({ assetId }) => <span key={assetId}><i data-story-progress /></span>)}</div>
+          <div className="story-viewer__topbar"><div><strong>Handheld</strong><span data-story-current aria-live="polite" /></div><button data-story-pause aria-label="Pause story">Ⅱ</button><button data-story-close aria-label="Close stories">×</button></div>
+          <img className="story-viewer__image" data-story-image alt="" />
+          <div className="story-viewer__scrim" />
+          <button className="story-viewer__previous" data-story-previous aria-label="Previous story" />
+          <button className="story-viewer__next" data-story-next aria-label="Next story" />
+          <div className="story-viewer__actions"><button data-story-love aria-label="Love this story">Love</button><button data-story-comment aria-label="Comment on this story">Comment</button></div>
+          <p className="story-viewer__caption" data-story-caption />
+        </div>
+      </section>
 
       <section id="gallery-filter" aria-label="Filter fixture">
         <div className="tag-filter-fixture" aria-label="Photo tags">

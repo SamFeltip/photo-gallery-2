@@ -186,6 +186,10 @@ export function FancyboxDrawer({
     );
   }, [selectingIdentity]);
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("fancybox-drawer-state", { detail: { open } }));
+  }, [open]);
+
   return (
     <Drawer.Root open={open} onOpenChange={setOpen}>
       <Drawer.Portal>
