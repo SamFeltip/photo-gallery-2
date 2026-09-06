@@ -57,6 +57,8 @@ PR: [#2](https://github.com/SamFeltip/photo-gallery-2/pull/2)
 
 Branch: `codex/gallery-stacks-prefetch`
 
+PR: [#3](https://github.com/SamFeltip/photo-gallery-2/pull/3)
+
 - [x] Detect stacks and use each stack as a carousel.
 - [x] When no stacks exist, show every photo in the scrolling gallery and one
       album-wide carousel.
@@ -65,7 +67,7 @@ Branch: `codex/gallery-stacks-prefetch`
 - [x] Prefetch on pointer, keyboard, or touch intent without excessive data
       use.
 - [x] Add unit and Playwright coverage.
-- [ ] Open PR 3.
+- [x] Open PR 3.
 
 ## Stage 4 — Tag filtering
 
