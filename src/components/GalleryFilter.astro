@@ -2,65 +2,43 @@
 import type { AlbumResponseDto } from "@immich/sdk";
 import People from "../components/People.astro";
 import type { AssetStack } from "../types/assets";
+import Tags from "./Tags.astro";
+import type { GalleryTag } from "@/lib/galleryTags";
 
 interface Props {
   album: AlbumResponseDto;
   displayAssets: AssetStack[];
+  tags: GalleryTag[];
 }
 
-const { album, displayAssets } = Astro.props;
+const { album, displayAssets, tags } = Astro.props;
 ---
 
 <div id="gallery-filter">
   <People album={album} displayAssets={displayAssets} />
+  <Tags tags={tags} />
+
+  <p class="gallery-results" data-gallery-result-count aria-live="polite">
+    {displayAssets.length} of {displayAssets.length} photos
+  </p>
 
   <div id="photoswipe">
     <slot />
   </div>
+  <div class="gallery-empty" data-gallery-empty hidden>
+    <h2>No matching photos</h2>
+    <p>Try clearing a tag or face filter.</p>
+  </div>
 </div>
 
 <script>
-  const galleryFilter =
-    document.querySelector<HTMLDivElement>("div#gallery-filter");
-
-  const filteredPeople = new Set();
-
-  galleryFilter?.addEventListener("person", (e) => {
-    console.debug("caught person event");
-
-    if (!e.detail) {
-      throw new Error("no details were added to person event.");
-    }
-
-    const { personId, toggleMode } = e.detail;
-
-    if (toggleMode == "active") {
-      filteredPeople.add(personId);
-    } else {
-      filteredPeople.delete(personId);
-    }
-
-    const allPersonImages = document.querySelectorAll(`a.thumbhash-img`);
-    allPersonImages.forEach((anchor) => anchor.classList.remove("show"));
-
-    let queryString = "a.thumbhash-img";
-    Array.from(filteredPeople).forEach((personIdFilter) => {
-      queryString += `:has(span[data-person='${personIdFilter}'])`;
-    });
-
-    const personImages = document.querySelectorAll(queryString);
-    personImages.forEach((anchor) => anchor.classList.add("show"));
-
-    const photoList = document.querySelector(`#photoswipe`);
-    if (filteredPeople.size === 0) {
-      photoList?.classList.remove("filtered");
-    } else {
-      photoList?.classList.add("filtered");
-    }
-  });
+  import { installGalleryFiltering } from "@/lib/galleryFiltering";
+  installGalleryFiltering();
 </script>
 <style>
-  #photoswipe.filtered :global(a:not(.show)) {
-    display: none;
-  }
+  :global(a.gallery-filter-hidden) { display: none !important; }
+  .gallery-results { margin: 0 0 0.8rem; opacity: 0.72; font-size: 0.9rem; }
+  .gallery-empty { padding: 4rem 1rem; text-align: center; }
+  .gallery-empty h2 { margin: 0; }
+  .gallery-empty p { margin: 0.5rem 0 0; opacity: 0.68; }
 </style>

@@ -73,12 +73,14 @@ PR: [#3](https://github.com/SamFeltip/photo-gallery-2/pull/3)
 
 Branch: `codex/tag-filters`
 
-- [ ] Load image tags through the Immich SDK.
-- [ ] Add accessible multi-select filtering with clear/reset controls.
-- [ ] Keep filters reflected in the URL so views can be shared and restored.
-- [ ] Ensure stacks, counts, and empty states respond correctly to filters.
-- [ ] Add unit and Playwright coverage.
-- [ ] Open PR 4.
+PR: [#4](https://github.com/SamFeltip/photo-gallery-2/pull/4)
+
+- [x] Load image tags through the Immich SDK.
+- [x] Add accessible multi-select filtering with clear/reset controls.
+- [x] Keep filters reflected in the URL so views can be shared and restored.
+- [x] Ensure stacks, counts, and empty states respond correctly to filters.
+- [x] Add unit and Playwright coverage.
+- [x] Open PR 4.
 
 ## Stage 5 — Handheld stories
 

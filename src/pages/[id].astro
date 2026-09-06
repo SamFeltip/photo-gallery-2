@@ -15,6 +15,7 @@ import type { AssetStack } from "../types/assets";
 import { getDisplayAssets } from "../lib/displayAssetHelpers";
 import { albumHasStacks, getFancyboxGroup } from "../lib/galleryPresentation";
 import { getShareKey } from "../lib/shareKey";
+import { getGalleryTagData, type GalleryTagData } from "@/lib/galleryTags";
 
 const { id } = Astro.params;
 
@@ -35,11 +36,13 @@ try {
 
 let album: AlbumResponseDto | undefined;
 let displayAssets: AssetStack[] = [];
+let tagData: GalleryTagData = { tags: [], tagIdsByGroupId: {} };
 
 if (errorMessage === null) {
   try {
     album = await getAlbumInfo({id: id});
     displayAssets = await getDisplayAssets(id);
+    tagData = await getGalleryTagData(id, displayAssets);
   } catch (err) {
     if (err instanceof Error) {
       errorMessage = `Error fetching album: ${err.message}`;
@@ -103,7 +106,7 @@ const hasStacks = albumHasStacks(displayAssets);
         ) : (
           <h1><a href="/">{album.albumName}</a></h1>
 
-          <GalleryFilter album={album} displayAssets={displayAssets}>
+          <GalleryFilter album={album} displayAssets={displayAssets} tags={tagData.tags}>
               <Gallery albumId={id}>
                 {displayAssets
                   .map((asset, index) => {
@@ -116,6 +119,7 @@ const hasStacks = albumHasStacks(displayAssets);
                               fancyboxGroup={getFancyboxGroup(id, asset, hasStacks)}
                               shareKey={shareKey}
                               lazy={index > 6}
+                              tagIds={tagData.tagIdsByGroupId[asset.id] ?? []}
                             />
                           </BlurhashBackground>
                         </LoadInTransition>

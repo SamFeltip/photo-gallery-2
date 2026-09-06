@@ -10,9 +10,10 @@ interface Props {
   asset: AssetStack;
   fancyboxGroup: string;
   lazy: boolean;
+  tagIds?: string[];
 }
 
-const { lazy, asset, fancyboxGroup, shareKey } = Astro.props;
+const { lazy, asset, fancyboxGroup, shareKey, tagIds = [] } = Astro.props;
 
 function getDescription(asset: AssetResponseDto) {
   return asset.exifInfo?.description || asset.originalFileName;
@@ -30,9 +31,7 @@ const orientation = [8, 6].includes(
 const imgHeight = orientation === "portrait" ? width : height;
 const imgWidth = orientation === "portrait" ? height : width;
 
-const peopleIds = Object.fromEntries(
-  asset.bestItem.people?.map((person) => ["data-person", person.id]) ?? [],
-);
+const peopleIds = asset.bestItem.people?.map(({ id }) => id) ?? [];
 ---
 
 <style>
@@ -83,7 +82,8 @@ const peopleIds = Object.fromEntries(
   target="_blank"
   data-fancybox={fancyboxGroup}
   class="thumbhash-img"
-  {...peopleIds}
+  data-people={peopleIds.join(",")}
+  data-tags={tagIds.join(",")}
 >
   <div style={{ position: "relative" }}>
     <div
