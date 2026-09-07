@@ -99,13 +99,15 @@ PR: [#5](https://github.com/SamFeltip/photo-gallery-2/pull/5)
 
 Branch: `codex/photo-selection`
 
-- [ ] Enter selection mode with press-and-hold, with keyboard-accessible fallback.
-- [ ] Support selecting and clearing multiple photos.
-- [ ] Download selected photos in full resolution or a smaller rendition.
-- [ ] Use native sharing when available and provide a useful fallback.
-- [ ] Prevent selection gestures from accidentally opening Fancybox.
-- [ ] Add unit and Playwright coverage, including touch/long-press behavior.
-- [ ] Open PR 6.
+PR: [#7](https://github.com/SamFeltip/photo-gallery-2/pull/7)
+
+- [x] Enter selection mode with press-and-hold, with keyboard-accessible fallback.
+- [x] Support selecting and clearing multiple photos.
+- [x] Download selected photos in full resolution or a smaller rendition.
+- [x] Use native sharing when available and provide a useful fallback.
+- [x] Prevent selection gestures from accidentally opening Fancybox.
+- [x] Add unit and Playwright coverage, including touch/long-press behavior.
+- [x] Open PR 7.
 
 ## Stage 7 — General UI polish
 
