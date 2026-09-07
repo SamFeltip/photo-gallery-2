@@ -7,6 +7,16 @@ body {
   margin: 0;
 }
 
+#photoswipe {
+  display: flex;
+  gap: 1rem;
+  margin-block: 1rem;
+}
+
+#photoswipe.filtered a:not(.show) {
+  display: none;
+}
+
 main > button {
   margin: 1rem;
 }

@@ -8,8 +8,6 @@ import {
   init,
   getAlbumInfo,
   type AlbumResponseDto,
-  getAllAlbums,
-  getAllSharedLinks,
 } from "@immich/sdk";
 import AssetImg from "../components/AssetImg.astro"
 import Gallery from "../components/Gallery.astro";
@@ -19,40 +17,7 @@ import BlurhashBackground from "../components/BlurhashBackground.astro";
 
 import type { AssetStack } from "../types/assets";
 import { getDisplayAssets } from "../lib/displayAssetHelpers";
-import {
-  getShareKey,
-  isNonExpiringAlbumShareLink,
-} from "../lib/shareKey";
-
-export async function getStaticPaths() {
-  const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
-  const API_KEY = import.meta.env.API_KEY;
-
-  init({ baseUrl: `${IMMICH_BASE_URL}/api`, apiKey: API_KEY });
-
-  const albums = await getAllAlbums({
-    isShared: true,
-  });
-  const shareLinks = await getAllSharedLinks({});
-  const nonExpiringAlbumIds = shareLinks.reduce((albumIds, link) => {
-    const albumId = link.album?.id;
-
-    if (
-      albumId !== undefined &&
-      isNonExpiringAlbumShareLink(link, albumId)
-    ) {
-      albumIds.add(albumId);
-    }
-
-    return albumIds;
-  }, new Set<string>());
-
-  return albums
-    .filter((album) => nonExpiringAlbumIds.has(album.id))
-    .map((album) => ({
-      params: { id: album.id },
-    }));
-}
+import { getShareKey } from "../lib/shareKey";
 const { id } = Astro.params;
 
 const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;

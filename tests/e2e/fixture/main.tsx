@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ReactionType, UserAvatarColor, type ActivityResponseDto } from "@immich/sdk";
 import {
   FancyboxDrawer,
   type ActivityClient,
 } from "@/components/FancyboxDrawer";
+import {
+  initializeGalleryPeopleFilter,
+  initializePeopleSelectors,
+} from "@/lib/galleryPeopleFilter";
 import "./fixture.css";
 
 const activities: ActivityResponseDto[] = [];
@@ -61,6 +65,11 @@ function App() {
   const [photoOpen, setPhotoOpen] = useState(false);
   const [clicks, setClicks] = useState(0);
 
+  useEffect(() => {
+    initializeGalleryPeopleFilter(document.querySelector("#gallery-filter"));
+    initializePeopleSelectors(document.querySelector("#gallery-filter")!);
+  }, []);
+
   return (
     <main>
       <h1>Activity browser fixture</h1>
@@ -68,6 +77,18 @@ function App() {
       <button type="button" onClick={() => setClicks((value) => value + 1)}>
         Page remains clickable: {clicks}
       </button>
+
+      <section id="gallery-filter" aria-label="Gallery fixture">
+        <div aria-label="People filters">
+          <button className="avatar-wrap" data-person="sam" type="button">Sam</button>
+          <button className="avatar-wrap" data-person="alex" type="button">Alex</button>
+        </div>
+        <div id="photoswipe">
+          <a className="thumbhash-img" href="#sam-photo">Sam photo<span data-person="sam" /></a>
+          <a className="thumbhash-img" href="#shared-photo">Shared photo<span data-person="sam" /><span data-person="alex" /></a>
+          <a className="thumbhash-img" href="#alex-photo">Alex photo<span data-person="alex" /></a>
+        </div>
+      </section>
 
       {photoOpen && (
         <section className="photo-fixture" aria-label="Photo viewer">

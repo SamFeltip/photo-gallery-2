@@ -42,3 +42,20 @@ test("restores page clickability after closing both layers", async ({ page }) =>
   await expect(page.getByRole("button", { name: "Page remains clickable: 1" })).toBeVisible();
   await expect(page.locator("body")).not.toHaveCSS("pointer-events", "none");
 });
+
+test("filters gallery photos by one or several selected people", async ({ page }) => {
+  const photos = page.locator("#photoswipe a");
+  await expect(photos).toHaveCount(3);
+  await page.getByRole("button", { name: "Sam", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Sam photo" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Shared photo" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Alex photo" })).toBeHidden();
+
+  await page.getByRole("button", { name: "Alex", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Sam photo" })).toBeHidden();
+  await expect(page.getByRole("link", { name: "Shared photo" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Sam", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Alex photo" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Shared photo" })).toBeVisible();
+});

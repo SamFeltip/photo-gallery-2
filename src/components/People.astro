@@ -180,41 +180,7 @@ const people = Array.from(albumPeople.entries()).filter(
 </style>
 
 <script>
-  import { PersonCustomEvent, type PersonEventDetails } from "../types/events";
+  import { initializePeopleSelectors } from "../lib/galleryPeopleFilter";
 
-  const wraps = document.querySelectorAll(".avatar-wrap");
-
-  wraps.forEach((wrap) => {
-    wrap.addEventListener("click", () => {
-      console.debug("avatar-wrap clicked");
-      const willActivate = !wrap.classList.contains("active");
-
-      const personId = (wrap as HTMLElement).dataset.person;
-      if (!personId) {
-        throw new Error("data-person was missing");
-      }
-
-      let event;
-      if (willActivate) {
-        event = new PersonCustomEvent(personId, "active");
-      } else {
-        event = new PersonCustomEvent(personId, "disable");
-      }
-
-      console.debug("dispatching event", { event });
-      wrap.dispatchEvent(event);
-
-      wrap.classList.remove("animate", "reverse");
-      void (wrap as HTMLElement).offsetWidth; // force reflow so the animation restarts on repeat clicks
-
-      wrap.classList.add("animate");
-      if (!willActivate) wrap.classList.add("reverse");
-
-      wrap.classList.toggle("active", willActivate);
-    });
-
-    wrap.addEventListener("animationend", () => {
-      wrap.classList.remove("animate", "reverse");
-    });
-  });
+  initializePeopleSelectors();
 </script>

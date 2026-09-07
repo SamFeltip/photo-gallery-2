@@ -13,6 +13,7 @@ vi.mock("@immich/sdk", () => sdk);
 import {
   createActorActivity,
   getAssetActivityStatistics,
+  getPersonThumbnailForActivityPicker,
   listAssetActivities,
 } from "./immich";
 
@@ -58,5 +59,11 @@ describe("Immich activity SDK wrapper", () => {
     expect(sdk.createActivity).toHaveBeenCalledWith(activity, {
       headers: { "x-api-key": "actor-key" },
     });
+  });
+
+  it("loads person thumbnails through the SDK", async () => {
+    sdk.getPersonThumbnail.mockResolvedValue(new Blob(["image"]));
+    await getPersonThumbnailForActivityPicker("person-1");
+    expect(sdk.getPersonThumbnail).toHaveBeenCalledWith({ id: "person-1" });
   });
 });
