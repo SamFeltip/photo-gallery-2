@@ -8,8 +8,6 @@ import {
   init,
   getAlbumInfo,
   type AlbumResponseDto,
-  getAllAlbums,
-  getAllSharedLinks,
 } from "@immich/sdk";
 import AssetImg from "../components/AssetImg.astro"
 import Gallery from "../components/Gallery.astro";
@@ -18,43 +16,8 @@ import LoadInTransition from "../components/LoadInTransition.astro";
 import BlurhashBackground from "../components/BlurhashBackground.astro";
 
 import type { AssetStack } from "../types/assets";
-import { Icon } from "astro-icon/components";
 import { getDisplayAssets } from "../lib/displayAssetHelpers";
-import {
-  getShareKey,
-  isNonExpiringAlbumShareLink,
-} from "../lib/shareKey";
-
-export async function getStaticPaths() {
-  const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
-  const API_KEY = import.meta.env.API_KEY;
-
-  init({ baseUrl: `${IMMICH_BASE_URL}/api`, apiKey: API_KEY });
-
-  const albums = await getAllAlbums({
-    isShared: true,
-  });
-  const shareLinks = await getAllSharedLinks({});
-  const nonExpiringAlbumIds = shareLinks.reduce((albumIds, link) => {
-    const albumId = link.album?.id;
-
-    if (
-      albumId !== undefined &&
-      isNonExpiringAlbumShareLink(link, albumId)
-    ) {
-      albumIds.add(albumId);
-    }
-
-    return albumIds;
-  }, new Set<string>());
-
-  return albums
-    .filter((album) => nonExpiringAlbumIds.has(album.id))
-    .map((album) => ({
-      params: { id: album.id },
-    }));
-}
-
+import { getShareKey } from "../lib/shareKey";
 const { id } = Astro.params;
 
 const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
@@ -124,13 +87,13 @@ if (errorMessage === null) {
   </head>
   <body>
     <template id="heart">
-      <Icon name="tabler:heart-filled" />
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-8-4.4-8-11a4.5 4.5 0 0 1 8-2.7A4.5 4.5 0 0 1 20 10c0 6.6-8 11-8 11Z" fill="currentColor" /></svg>
     </template>
     <template id="heart-button">
-      <Icon name="iconamoon:heart-thin" />
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-8-4.4-8-11a4.5 4.5 0 0 1 8-2.7A4.5 4.5 0 0 1 20 10c0 6.6-8 11-8 11Z" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
     </template>
     <template id="heart-button-filled">
-      <Icon name="iconamoon:heart-fill" />
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-8-4.4-8-11a4.5 4.5 0 0 1 8-2.7A4.5 4.5 0 0 1 20 10c0 6.6-8 11-8 11Z" fill="currentColor" /></svg>
     </template>
 
     <main album-id={id}>
@@ -141,7 +104,7 @@ if (errorMessage === null) {
           <h1><a href="/">{album.albumName}</a></h1>
 
           <GalleryFilter album={album} displayAssets={displayAssets}>
-              <Gallery>
+              <Gallery albumId={id}>
                 {displayAssets
                   .map((asset, index) => {
                     return (

@@ -1,0 +1,49 @@
+:root {
+  font-family: system-ui, sans-serif;
+  --font-unbounded: system-ui;
+}
+
+body {
+  margin: 0;
+}
+
+#photoswipe {
+  display: flex;
+  gap: 1rem;
+  margin-block: 1rem;
+}
+
+#photoswipe.filtered a:not(.show) {
+  display: none;
+}
+
+main > button {
+  margin: 1rem;
+}
+
+.photo-fixture {
+  background: #101014;
+  inset: 0;
+  position: fixed;
+}
+
+.photo-fixture__toolbar {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.photo-fixture__toolbar button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.65rem 1rem;
+}
+
+.photo-fixture__image {
+  background: linear-gradient(#9cc5de 0 45%, #456b55 45% 63%, #163d5b 63%);
+  inset: 4rem 1rem 1rem;
+  position: absolute;
+}
