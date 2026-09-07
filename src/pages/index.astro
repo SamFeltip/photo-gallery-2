@@ -6,6 +6,7 @@ import "../styles/reset.css";
 import "../styles/styles.css";
 import LoadInTransition from "../components/LoadInTransition.astro";
 import BlurhashBackground from "../components/BlurhashBackground.astro";
+import { isNonExpiringAlbumShareLink } from "../lib/shareKey";
 import {
   getAllAlbums,
   init,
@@ -25,20 +26,11 @@ const albumsResponse = await getAllAlbums({ isShared: true });
 
 const shareLinks = await getAllSharedLinks({});
 
-const sharedAlbums = shareLinks.filter(
-  (link) =>
-    link.album?.id !== undefined &&
-    (link.expiresAt == null || new Date(link.expiresAt) > new Date()),
-);
-
-const sharedAlbumIds = sharedAlbums
-  .map((link) => link.album?.id)
-  .filter((id): id is string => id !== undefined);
-
 let albums = albumsResponse
-  .filter((album) => sharedAlbumIds.includes(album.id))
   .map((album) => {
-    const sharedLink = sharedAlbums.find((link) => link.album?.id === album.id);
+    const sharedLink = shareLinks.find((link) =>
+      isNonExpiringAlbumShareLink(link, album.id),
+    );
     return {
       ...album,
       sharedKey: sharedLink?.key,

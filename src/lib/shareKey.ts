@@ -1,6 +1,21 @@
 const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
 const API_KEY = import.meta.env.API_KEY;
 
+type AlbumShareLink = {
+  album?: { id?: string };
+  expiresAt?: string | null;
+};
+
+export function isNonExpiringAlbumShareLink(
+  link: AlbumShareLink,
+  albumId: string,
+) {
+  return (
+    link.album?.id === albumId &&
+    link.expiresAt == null
+  );
+}
+
 export async function getShareKey(id: string) {
   let links = null;
 
@@ -25,11 +40,7 @@ export async function getShareKey(id: string) {
     throw new Error("Unexpected response shape for shared links.");
   }
 
-  const link = links.find(
-    (link) =>
-      link.album.id === id &&
-      (link.expiresAt == null || new Date(link.expiresAt) > new Date()),
-  );
+  const link = links.find((link) => isNonExpiringAlbumShareLink(link, id));
 
   if (!link) {
     throw new Error(`No shared link found for album id ${id}`);
