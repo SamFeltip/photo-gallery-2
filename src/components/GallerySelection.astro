@@ -1,0 +1,46 @@
+---
+interface Props { albumId: string }
+const { albumId } = Astro.props;
+---
+
+<section class="gallery-selection" data-gallery-selection data-album-id={albumId} aria-label="Photo selection">
+  <button type="button" class="gallery-selection__start" data-selection-start>Select photos</button>
+  <div class="gallery-selection__toolbar" data-selection-toolbar hidden>
+    <strong data-selection-count aria-live="polite">0 selected</strong>
+    <div class="gallery-selection__actions">
+      <button type="button" data-selection-download-full>Download full resolution</button>
+      <button type="button" data-selection-download-small>Download smaller</button>
+      <button type="button" data-selection-share>Share</button>
+      <button type="button" data-selection-clear>Clear</button>
+      <button type="button" data-selection-done>Done</button>
+    </div>
+  </div>
+  <p class="gallery-selection__status" data-selection-status aria-live="polite"></p>
+</section>
+
+<script>
+  import { installGallerySelection } from "@/lib/gallerySelection";
+  installGallerySelection();
+</script>
+
+<style>
+  .gallery-selection { margin: 0 0 1rem; }
+  .gallery-selection__start, .gallery-selection__actions button {
+    min-height: 2.65rem; padding: 0.55rem 0.9rem;
+    border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    border-radius: 999px; color: inherit; background: Canvas; font: inherit; cursor: pointer;
+  }
+  .gallery-selection__toolbar {
+    position: sticky; z-index: 20; top: 0.75rem; display: flex; align-items: center;
+    justify-content: space-between; gap: 1rem; padding: 0.75rem;
+    border: 1px solid color-mix(in srgb, currentColor 16%, transparent); border-radius: 18px;
+    background: color-mix(in srgb, Canvas 88%, transparent); box-shadow: 0 12px 30px rgb(0 0 0 / 0.12); backdrop-filter: blur(14px);
+  }
+  .gallery-selection__toolbar[hidden] { display: none; }
+  .gallery-selection__actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 0.45rem; }
+  .gallery-selection__actions button:disabled { cursor: not-allowed; opacity: 0.45; }
+  .gallery-selection__actions button:last-child { color: Canvas; background: CanvasText; }
+  .gallery-selection__status { min-height: 1.2em; margin: 0.4rem 0 0; opacity: 0.72; font-size: 0.82rem; }
+  button:focus-visible { outline: 3px solid var(--outline); outline-offset: 2px; }
+  @media (max-width: 700px) { .gallery-selection__toolbar { align-items: start; flex-direction: column; } .gallery-selection__actions { justify-content: start; } }
+</style>

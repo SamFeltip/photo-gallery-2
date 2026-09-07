@@ -7,6 +7,7 @@ import {
 } from "@/components/FancyboxDrawer";
 import { installIntentPrefetch } from "@/lib/imagePrefetch";
 import { installGalleryFiltering } from "@/lib/galleryFiltering";
+import { installGallerySelection } from "@/lib/gallerySelection";
 import { installHandheldStories } from "@/lib/handheldStories";
 import "@/components/HandheldStories.css";
 import "./fixture.css";
@@ -76,10 +77,12 @@ function App() {
     const removePrefetch = installIntentPrefetch();
     const removeFiltering = installGalleryFiltering();
     const removeStories = installHandheldStories();
+    const removeSelection = installGallerySelection();
     return () => {
       removePrefetch();
       removeFiltering();
       removeStories();
+      removeSelection();
     };
   }, []);
 
@@ -126,10 +129,29 @@ function App() {
           <button type="button" data-gallery-tags-clear hidden>Clear tags</button>
         </div>
         <p data-gallery-result-count aria-live="polite" />
+        <section data-gallery-selection aria-label="Photo selection">
+          <button type="button" data-selection-start>Select photos</button>
+          <div data-selection-toolbar hidden>
+            <strong data-selection-count aria-live="polite">0 selected</strong>
+            <button type="button" data-selection-download-full>Download full resolution</button>
+            <button type="button" data-selection-download-small>Download smaller</button>
+            <button type="button" data-selection-share>Share</button>
+            <button type="button" data-selection-clear>Clear</button>
+            <button type="button" data-selection-done>Done</button>
+          </div>
+          <p data-selection-status aria-live="polite" />
+        </section>
         <div id="photoswipe">
-          <a className="thumbhash-img" href="#lake" data-tags="lake" data-people="sam">Lake photo</a>
-          <a className="thumbhash-img" href="#city" data-tags="city" data-people="alex">City photo</a>
-          <a className="thumbhash-img" href="#both" data-tags="lake,city" data-people="sam,alex">Lake and city photo</a>
+          {[
+            { id: "lake-photo", label: "Lake photo", tags: "lake", people: "sam" },
+            { id: "city-photo", label: "City photo", tags: "city", people: "alex" },
+            { id: "both-photo", label: "Lake and city photo", tags: "lake,city", people: "sam,alex" },
+          ].map((photo) => (
+            <span className="asset-wrapper" key={photo.id} data-selection-id={photo.id} data-filename={`${photo.id}.jpg`} data-download-full={`/downloads/${photo.id}/original`} data-download-small={`/downloads/${photo.id}/small`}>
+              <a className="thumbhash-img" href={`#${photo.id}`} data-tags={photo.tags} data-people={photo.people}>{photo.label}</a>
+              <button type="button" data-photo-select aria-pressed="false" aria-label={`Select ${photo.id}.jpg`}>✓</button>
+            </span>
+          ))}
         </div>
         <div data-gallery-empty hidden>No matching photos</div>
       </section>
