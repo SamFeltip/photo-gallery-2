@@ -4,6 +4,7 @@ import People from "../components/People.astro";
 import type { AssetStack } from "../types/assets";
 import Tags from "./Tags.astro";
 import type { GalleryTag } from "@/lib/galleryTags";
+import GallerySelection from "./GallerySelection.astro";
 
 interface Props {
   album: AlbumResponseDto;
@@ -17,6 +18,7 @@ const { album, displayAssets, tags } = Astro.props;
 <div id="gallery-filter">
   <People album={album} displayAssets={displayAssets} />
   <Tags tags={tags} />
+  <GallerySelection albumId={album.id} />
 
   <p class="gallery-results" data-gallery-result-count aria-live="polite">
     {displayAssets.length} of {displayAssets.length} photos
@@ -36,7 +38,7 @@ const { album, displayAssets, tags } = Astro.props;
   installGalleryFiltering();
 </script>
 <style>
-  :global(a.gallery-filter-hidden) { display: none !important; }
+  :global(.gallery-filter-hidden) { display: none !important; }
   .gallery-results { margin: 0 0 0.8rem; opacity: 0.72; font-size: 0.9rem; }
   .gallery-empty { padding: 4rem 1rem; text-align: center; }
   .gallery-empty h2 { margin: 0; }

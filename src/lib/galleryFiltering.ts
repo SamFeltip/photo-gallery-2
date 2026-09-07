@@ -35,7 +35,7 @@ export function writeTagsToUrl(search: string, tagIds: Iterable<string>) {
 }
 
 export function installGalleryFiltering(root: ParentNode = document) {
-  const gallery = root.querySelector<HTMLElement>("#gallery-filter");
+  const gallery = root.querySelector<HTMLElement>("#gallery-filter")!;
   if (!gallery) return () => {};
 
   const assets = [...gallery.querySelectorAll<HTMLElement>("#photoswipe a.thumbhash-img")];
@@ -53,8 +53,9 @@ export function installGalleryFiltering(root: ParentNode = document) {
     let visible = 0;
     for (const asset of assets) {
       const show = matchesGalleryFilters(asset.dataset, filters);
-      asset.hidden = !show;
-      asset.classList.toggle("gallery-filter-hidden", !show);
+      const card = asset.closest<HTMLElement>(".asset-wrapper") ?? asset;
+      card.hidden = !show;
+      card.classList.toggle("gallery-filter-hidden", !show);
       if (show) visible += 1;
     }
 
@@ -66,6 +67,7 @@ export function installGalleryFiltering(root: ParentNode = document) {
     if (count) count.textContent = `${visible} of ${assets.length} photos`;
     if (empty) empty.hidden = visible !== 0;
     if (clear) clear.hidden = filters.tags.size === 0;
+    gallery.dispatchEvent(new Event("gallery-filter-changed"));
   }
 
   function syncUrl() {

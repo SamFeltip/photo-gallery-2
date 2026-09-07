@@ -29,7 +29,27 @@ main > button {
   background: #eef3f7;
 }
 
-#photoswipe a.gallery-filter-hidden {
+.asset-wrapper {
+  display: inline-grid;
+  gap: 0.25rem;
+}
+
+[data-selection-toolbar] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+
+[data-selection-toolbar][hidden] {
+  display: none;
+}
+
+.asset-wrapper--selected {
+  outline: 3px solid #2867e8;
+}
+
+.gallery-filter-hidden {
   display: none !important;
 }
 

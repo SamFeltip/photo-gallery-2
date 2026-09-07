@@ -67,7 +67,7 @@ test("filters by multiple tags, updates counts, and clears the selection", async
 
 test("restores a shared tag-filter URL and shows an empty state", async ({ page }) => {
   await page.goto("/?tag=city");
-  await expect(page.getByRole("button", { name: "City" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "City", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText("2 of 3 photos")).toBeVisible();
 
   await page.evaluate(() => {
@@ -120,4 +120,61 @@ test("swipes between stories and opens their shared comment drawer", async ({ pa
   }))).toEqual({ overflow: "", inertChildren: 0 });
   await page.getByRole("button", { name: /Page remains clickable/ }).click();
   await expect(page.getByRole("button", { name: "Page remains clickable: 1" })).toBeVisible();
+});
+
+test("selects multiple photos without opening their links and restores the URL", async ({ page }) => {
+  await page.getByRole("button", { name: "Select photos" }).click();
+  const lakeToggle = page.getByRole("button", { name: "Select lake-photo.jpg" });
+  await expect(lakeToggle).toBeFocused();
+  await lakeToggle.click();
+  await page.getByRole("link", { name: "City photo", exact: true }).click();
+  await expect(page.getByText("2 selected")).toBeVisible();
+  await expect(page).toHaveURL(/selected=lake-photo/);
+  await expect(page).toHaveURL(/selected=city-photo/);
+  await expect(page).not.toHaveURL(/#city-photo/);
+
+  await page.reload();
+  await expect(page.getByText("2 selected")).toBeVisible();
+  await page.getByRole("button", { name: "Done" }).click();
+  await expect(page).not.toHaveURL(/selected=/);
+  await expect(page.getByRole("button", { name: "Select photos" })).toBeFocused();
+});
+
+test("long press selects once while a short tap remains a normal link", async ({ page }) => {
+  const lake = page.getByRole("link", { name: "Lake photo", exact: true });
+  await lake.dispatchEvent("pointerdown", { button: 0, pointerId: 4, clientX: 20, clientY: 20 });
+  await page.waitForTimeout(600);
+  await lake.dispatchEvent("pointerup", { pointerId: 4, clientX: 20, clientY: 20 });
+  await lake.dispatchEvent("click");
+  await expect(page.getByText("1 selected")).toBeVisible();
+  await expect(page).not.toHaveURL(/#lake-photo/);
+
+  await page.getByRole("button", { name: "Done" }).click();
+  await page.getByRole("link", { name: "City photo", exact: true }).click();
+  await expect(page).toHaveURL(/#city-photo/);
+});
+
+test("offers both download sizes and native selected-link sharing", async ({ page }) => {
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: (data: ShareData) => {
+        (window as typeof window & { shared?: ShareData }).shared = data;
+        return Promise.resolve();
+      },
+    });
+  });
+  await page.getByRole("button", { name: "Select photos" }).click();
+  await page.getByRole("button", { name: "Select lake-photo.jpg" }).click();
+
+  const smallDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download smaller" }).click();
+  await expect(smallDownload).resolves.toMatchObject({});
+  const fullDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download full resolution" }).click();
+  await expect(fullDownload).resolves.toMatchObject({});
+
+  await page.getByRole("button", { name: "Share" }).click();
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { shared?: ShareData }).shared?.url)).toContain("selected=lake-photo");
+  await expect(page.getByText("Selection shared.")).toBeVisible();
 });
