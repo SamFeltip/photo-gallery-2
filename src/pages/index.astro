@@ -26,7 +26,11 @@ const albumsResponse = await getAllAlbums({ isShared: true });
 
 const shareLinks = getGalleryAlbumLinks(await getAllSharedLinks({}));
 
+// The Wedding album already has a dedicated link on this page.
+const weddingAlbumId = "d4d1f58d-c16f-4bfd-8885-99465c5500e5";
+
 const albums = albumsResponse
+  .filter((album) => album.id !== weddingAlbumId)
   .map((album) => {
     const sharedLink = shareLinks.get(album.id);
     return {
