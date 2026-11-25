@@ -6,7 +6,7 @@ import "../styles/reset.css";
 import "../styles/styles.css";
 import LoadInTransition from "../components/LoadInTransition.astro";
 import BlurhashBackground from "../components/BlurhashBackground.astro";
-import { isNonExpiringAlbumShareLink } from "../lib/shareKey";
+import { getGalleryAlbumLinks } from "../lib/shareKey";
 import {
   getAllAlbums,
   init,
@@ -24,13 +24,11 @@ init({
 
 const albumsResponse = await getAllAlbums({ isShared: true });
 
-const shareLinks = await getAllSharedLinks({});
+const shareLinks = getGalleryAlbumLinks(await getAllSharedLinks({}));
 
-let albums = albumsResponse
+const albums = albumsResponse
   .map((album) => {
-    const sharedLink = shareLinks.find((link) =>
-      isNonExpiringAlbumShareLink(link, album.id),
-    );
+    const sharedLink = shareLinks.get(album.id);
     return {
       ...album,
       sharedKey: sharedLink?.key,
@@ -44,7 +42,8 @@ let albums = albumsResponse
       sharedKey: string;
     } =>
       album.sharedKey !== undefined &&
-      album.albumThumbnailAssetId !== undefined,
+      typeof album.albumThumbnailAssetId === "string" &&
+      album.albumThumbnailAssetId.length > 0,
   );
 ---
 
@@ -126,6 +125,12 @@ let albums = albumsResponse
   <body>
     <main>
       <section id="albums">
+        <a class="album" id="wedding" href="https://eveand.samfelton.com/wedding">
+          <div class="image-wrapper">
+            <img src="/wedding-cover.webp" alt="Wedding!" width="1920" height="1280" />
+          </div>
+          <h2 style={{ margin: "0.5rem 0 0;" }}>Wedding!</h2>
+        </a>
         {
           Object.values(albums)
             .toSorted(
