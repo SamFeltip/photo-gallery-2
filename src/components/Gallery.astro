@@ -1,6 +1,12 @@
 ---
 // this gallery component is a wrapper for the photoswipe functionality
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
+
+interface Props {
+  allowDownload: boolean;
+}
+
+const { allowDownload } = Astro.props;
 ---
 
 <style>
@@ -19,7 +25,7 @@ import "@fancyapps/ui/dist/fancybox/fancybox.css";
     }
   }
 </style>
-<section class="justified-gallery">
+<section class="justified-gallery" data-allow-download={String(allowDownload)}>
   <!-- should contain [data-fancybox] elements -->
   <slot />
 </section>
@@ -32,6 +38,9 @@ import "@fancyapps/ui/dist/fancybox/fancybox.css";
   import { Fancybox } from "@fancyapps/ui/dist/fancybox/";
 
   document.addEventListener("DOMContentLoaded", () => refreshHearts());
+
+  const gallery = document.querySelector<HTMLElement>(".justified-gallery");
+  const allowDownload = gallery?.dataset.allowDownload === "true";
 
   Fancybox.bind("[data-fancybox]", {
     theme: "auto",
@@ -53,7 +62,7 @@ import "@fancyapps/ui/dist/fancybox/fancybox.css";
         display: {
           left: [],
           middle: [],
-          right: ["download", "heart", "close"],
+          right: allowDownload ? ["download", "heart", "close"] : ["heart", "close"],
         },
       },
       transition: "slide",
