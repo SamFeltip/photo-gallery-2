@@ -11,7 +11,7 @@ import {
   getAllAlbums,
   getAllSharedLinks,
 } from "@immich/sdk";
-import AssetImg from "../components/AssetImg.astro"
+import AssetImg from "../components/AssetImg.astro";
 import Gallery from "../components/Gallery.astro";
 import GalleryFilter from "../components/GalleryFilter.astro";
 import LoadInTransition from "../components/LoadInTransition.astro";
@@ -20,10 +20,7 @@ import BlurhashBackground from "../components/BlurhashBackground.astro";
 import type { AssetStack } from "../types/assets";
 import { Icon } from "astro-icon/components";
 import { getDisplayAssets } from "../lib/displayAssetHelpers";
-import {
-  getShareKey,
-  isNonExpiringAlbumShareLink,
-} from "../lib/shareKey";
+import { getGalleryAlbumLinks } from "../lib/shareKey";
 
 export async function getStaticPaths() {
   const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
@@ -34,55 +31,38 @@ export async function getStaticPaths() {
   const albums = await getAllAlbums({
     isShared: true,
   });
-  const shareLinks = await getAllSharedLinks({});
-  const nonExpiringAlbumIds = shareLinks.reduce((albumIds, link) => {
-    const albumId = link.album?.id;
+  const shareLinks = getGalleryAlbumLinks(await getAllSharedLinks({}));
 
-    if (
-      albumId !== undefined &&
-      isNonExpiringAlbumShareLink(link, albumId)
-    ) {
-      albumIds.add(albumId);
-    }
+  return albums.flatMap(({ id }) => {
+    const link = shareLinks.get(id);
+    if (!link) return [];
 
-    return albumIds;
-  }, new Set<string>());
-
-  return albums
-    .filter((album) => nonExpiringAlbumIds.has(album.id))
-    .map((album) => ({
-      params: { id: album.id },
-    }));
+    return {
+      params: { id },
+      props: { shareKey: link.key, allowDownload: link.allowDownload },
+    };
+  });
 }
 
+type Props = { shareKey: string; allowDownload: boolean };
+
 const { id } = Astro.params;
+const { shareKey, allowDownload } = Astro.props;
 
 const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
 const API_KEY = import.meta.env.API_KEY;
 init({ baseUrl: `${IMMICH_BASE_URL}/api`, apiKey: API_KEY });
 
 let errorMessage = null;
-
-let shareKey = null;
-try {
-  shareKey = await getShareKey(id);
-} catch (err) {
-  if (err instanceof Error) {
-    errorMessage = `Error fetching shared link: ${err.message}`;
-  }
-}
-
 let album: AlbumResponseDto | undefined;
 let displayAssets: AssetStack[] = [];
 
-if (errorMessage === null) {
-  try {
-    album = await getAlbumInfo({id: id});
-    displayAssets = await getDisplayAssets(id);
-  } catch (err) {
-    if (err instanceof Error) {
-      errorMessage = `Error fetching album: ${err.message}`;
-    }
+try {
+  album = await getAlbumInfo({ id });
+  displayAssets = await getDisplayAssets(id);
+} catch (err) {
+  if (err instanceof Error) {
+    errorMessage = `Error fetching album: ${err.message}`;
   }
 }
 ---
@@ -141,14 +121,19 @@ if (errorMessage === null) {
           <h1><a href="/">{album.albumName}</a></h1>
 
           <GalleryFilter album={album} displayAssets={displayAssets}>
-              <Gallery>
+              <Gallery allowDownload={allowDownload}>
                 {displayAssets
                   .map((asset, index) => {
                     return (
                       <span class="asset-wrapper" style={{display: "contents"}}>
                         <LoadInTransition>
                           <BlurhashBackground asset={asset.bestItem}>
-                            <AssetImg asset={asset} shareKey={shareKey} lazy={index > 6}/>
+                            <AssetImg
+                              asset={asset}
+                              shareKey={shareKey}
+                              allowDownload={allowDownload}
+                              lazy={index > 6}
+                            />
                           </BlurhashBackground>
                         </LoadInTransition>
                       </span>

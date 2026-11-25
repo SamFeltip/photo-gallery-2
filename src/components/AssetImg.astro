@@ -8,11 +8,19 @@ const IMMICH_BASE_URL = import.meta.env.IMMICH_BASE_URL;
 
 interface Props {
   shareKey: string;
+  allowDownload: boolean;
   asset: AssetStack;
   lazy: boolean;
 }
 
-const { lazy, asset, shareKey } = Astro.props;
+const { lazy, asset, shareKey, allowDownload } = Astro.props;
+
+function thumbnailUrl(assetId: string, size: "preview" | "fullsize") {
+  const query = new URLSearchParams({ key: shareKey, size });
+  return `${IMMICH_BASE_URL}/api/assets/${assetId}/thumbnail?${query}`;
+}
+
+const lightboxSize = allowDownload ? "fullsize" : "preview";
 
 function getDescription(asset: AssetResponseDto) {
   return asset.exifInfo?.description || asset.originalFileName;
@@ -76,8 +84,8 @@ const peopleIds = Object.fromEntries(
   --width: ${imgWidth}; 
   --height: ${imgHeight};
   `}
-  href={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=fullsize`}
-  data-download-src={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=preview`}
+  href={thumbnailUrl(asset.bestItem.id, lightboxSize)}
+  data-download-src={allowDownload ? thumbnailUrl(asset.bestItem.id, "preview") : undefined}
   data-asset-id={asset.bestItem.id}
   target="_blank"
   data-fancybox={asset.id}
@@ -128,7 +136,7 @@ const peopleIds = Object.fromEntries(
       id={asset.bestItem.id}
       width={imgWidth}
       height={imgHeight}
-      src={`${IMMICH_BASE_URL}/api/assets/${asset.bestItem.id}/thumbnail?key=${shareKey}&size=preview`}
+      src={thumbnailUrl(asset.bestItem.id, "preview")}
       alt={getDescription(asset.bestItem)}
       loading={lazy ? "lazy" : "eager"}
     />
@@ -153,15 +161,15 @@ const peopleIds = Object.fromEntries(
       <div style={{ display: "none" }}>
         <a
           data-fancybox={asset.id}
-          href={`${IMMICH_BASE_URL}/api/assets/${stackAsset.id}/thumbnail?key=${shareKey}&size=fullsize`}
-          data-download-src={`${IMMICH_BASE_URL}/api/assets/${stackAsset.id}/thumbnail?key=${shareKey}&size=preview`}
+          href={thumbnailUrl(stackAsset.id, lightboxSize)}
+          data-download-src={allowDownload ? thumbnailUrl(stackAsset.id, "preview") : undefined}
           data-asset-id={stackAsset.id}
         >
           <Image
             id={stackAsset.id}
             width={stackAssetWidth}
             height={stackAssetHeight}
-            src={`${IMMICH_BASE_URL}/api/assets/${stackAsset.id}/thumbnail?key=${shareKey}&size=preview`}
+            src={thumbnailUrl(stackAsset.id, "preview")}
             alt={getDescription(stackAsset)}
             loading="lazy"
           />
